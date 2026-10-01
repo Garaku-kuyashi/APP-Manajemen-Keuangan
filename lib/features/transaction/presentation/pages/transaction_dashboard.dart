@@ -5,7 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
+import 'transaction_form_page.dart';
 import '../../../wallet/presentation/pages/wallet_page.dart';
+import '../../../report/presentation/pages/report_page.dart';
+import '../../../search/presentation/pages/search_page.dart';
+import '../../../more/presentation/pages/more_page.dart';
 
 class TransactionDashboard extends StatefulWidget {
   const TransactionDashboard({super.key});
@@ -16,20 +20,18 @@ class TransactionDashboard extends StatefulWidget {
 
 class _TransactionDashboardState extends State<TransactionDashboard> {
   int _navIndex = 0;
+  final int _monthlyBudgetLimit = 1500000; // Target Batas Anggaran Bulanan Mahasiswa
 
   @override
   void initState() {
     super.initState();
-    // Memuat data transaksi saat pertama kali halaman dibuka
     context.read<TransactionCubit>().loadTransactions();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Deteksi ukuran layar untuk tata letak adaptif (Modul 5)
     final isMobile = MediaQuery.sizeOf(context).width < 600;
 
-    // Destinasi navigasi utama
     final destinations = const [
       NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
       NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),
@@ -42,7 +44,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
         .map((d) => NavigationRailDestination(icon: d.icon, label: Text(d.label)))
         .toList();
 
-    // Konten Dashboard Transaksi
+    // Konten Dashboard Utama Transaksi
     final dashboardContent = SafeArea(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -63,6 +65,9 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                   }
                 }
               }
+
+              final double budgetUsageRatio = (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
+              final bool isOverBudget = totalExpense > _monthlyBudgetLimit;
 
               return Card(
                 margin: const EdgeInsets.all(16),
@@ -91,6 +96,34 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                             style: const TextStyle(fontSize: 12, color: Colors.grey),
                           ),
                         ],
+                      ),
+                      const Divider(height: 24),
+                      
+                      // INDIKATOR BATAS ANGGARAN (BUDGET ALERT)
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            isOverBudget ? '⚠️ Pengeluaran Melebihi Target!' : 'Batas Target Anggaran',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: isOverBudget ? Colors.redAccent : Colors.white70,
+                            ),
+                          ),
+                          Text(
+                            'Rp $totalExpense / Rp $_monthlyBudgetLimit',
+                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      LinearProgressIndicator(
+                        value: budgetUsageRatio,
+                        minHeight: 8,
+                        borderRadius: BorderRadius.circular(4),
+                        color: budgetUsageRatio > 0.8 ? Colors.redAccent : Colors.orangeAccent,
+                        backgroundColor: Colors.grey.shade800,
                       ),
                     ],
                   ),
@@ -163,14 +196,30 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    item.date.toString().substring(0, 10),
+                                    '${item.walletName} • ${item.date.toString().substring(0, 10)}',
                                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                                   ),
                                 ],
                               ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () => context.read<TransactionCubit>().delete(item.id),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => TransactionFormPage(initialTransaction: item),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                    onPressed: () => context.read<TransactionCubit>().delete(item.id),
+                                  ),
+                                ],
                               ),
                             );
                           },
@@ -183,8 +232,23 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
       ),
     );
 
-    // Bodi aktif berdasarkan tab yang dipilih
-    final Widget activeBody = _navIndex == 1 ? const WalletPage() : dashboardContent;
+    Widget activeBody;
+    switch (_navIndex) {
+      case 1:
+        activeBody = const WalletPage();
+        break;
+      case 2:
+        activeBody = const SearchPage();
+        break;
+      case 3:
+        activeBody = const ReportPage();
+        break;
+      case 4:
+        activeBody = const MorePage();
+        break;
+      default:
+        activeBody = dashboardContent;
+    }
 
     return Scaffold(
       floatingActionButton: _navIndex == 0

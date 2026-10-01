@@ -19,8 +19,8 @@ class TransactionCubit extends Cubit<TransactionState> {
   Future<void> loadTransactions() async {
     emit(DataLoading());
     try {
-      final data = await getTransactions.execute();
-      emit(DataSuccess(transactions: data));
+      final transactions = await getTransactions.execute();
+      emit(DataSuccess(transactions: transactions));
     } catch (e) {
       emit(DataError(message: e.toString()));
     }
@@ -30,6 +30,17 @@ class TransactionCubit extends Cubit<TransactionState> {
     emit(DataLoading());
     try {
       await addTransaction.execute(transaction);
+      await loadTransactions();
+    } catch (e) {
+      emit(DataError(message: e.toString()));
+    }
+  }
+
+  // METHOD EDIT / UPDATE TRANSAKSI
+  Future<void> update(TransactionEntity transaction) async {
+    emit(DataLoading());
+    try {
+      await updateTransaction.execute(transaction);
       await loadTransactions();
     } catch (e) {
       emit(DataError(message: e.toString()));

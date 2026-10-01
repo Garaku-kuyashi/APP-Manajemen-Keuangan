@@ -18,32 +18,27 @@ class _WalletPageState extends State<WalletPage> {
     context.read<WalletCubit>().loadWallets();
   }
 
-  void _showAddWalletDialog() {
-    final nameCtrl = TextEditingController();
-    final balanceCtrl = TextEditingController();
+  void _showWalletDialog({WalletEntity? wallet}) {
+    final isEdit = wallet != null;
+    final nameCtrl = TextEditingController(text: wallet?.name ?? '');
+    final balanceCtrl = TextEditingController(text: wallet != null ? wallet.balance.toString() : '');
 
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Tambah Dompet Baru'),
+        title: Text(isEdit ? 'Edit Dompet' : 'Tambah Dompet Baru'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Nama Dompet',
-                hintText: 'Misal: SeaBank / Kantong Dana',
-              ),
+              decoration: const InputDecoration(labelText: 'Nama Dompet'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: balanceCtrl,
               keyboardType: TextInputType.number,
-              decoration: const InputDecoration(
-                labelText: 'Saldo Awal (Rp)',
-                hintText: 'Misal: 500000',
-              ),
+              decoration: const InputDecoration(labelText: 'Saldo (Rp)'),
             ),
           ],
         ),
@@ -55,17 +50,18 @@ class _WalletPageState extends State<WalletPage> {
           FilledButton(
             onPressed: () {
               if (nameCtrl.text.isNotEmpty && balanceCtrl.text.isNotEmpty) {
-                final newWallet = WalletEntity(
-                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                final walletData = WalletEntity(
+                  id: isEdit ? wallet.id : DateTime.now().millisecondsSinceEpoch.toString(),
                   name: nameCtrl.text.trim(),
                   balance: int.tryParse(balanceCtrl.text.trim()) ?? 0,
-                  iconName: 'account_balance_wallet',
+                  iconName: wallet?.iconName ?? 'account_balance_wallet',
                 );
-                context.read<WalletCubit>().add(newWallet);
+                
+                context.read<WalletCubit>().add(walletData);
                 Navigator.pop(dialogContext);
               }
             },
-            child: const Text('Simpan'),
+            child: Text(isEdit ? 'Simpan' : 'Tambah'),
           ),
         ],
       ),
@@ -80,7 +76,7 @@ class _WalletPageState extends State<WalletPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add_card),
-            onPressed: _showAddWalletDialog,
+            onPressed: () => _showWalletDialog(),
           ),
         ],
       ),
@@ -105,9 +101,18 @@ class _WalletPageState extends State<WalletPage> {
                           ),
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('Saldo: Rp ${item.balance}'),
-                          trailing: IconButton(
-                            icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
-                            onPressed: () => context.read<WalletCubit>().delete(item.id),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                                onPressed: () => _showWalletDialog(wallet: item),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                onPressed: () => context.read<WalletCubit>().delete(item.id),
+                              ),
+                            ],
                           ),
                         ),
                       );

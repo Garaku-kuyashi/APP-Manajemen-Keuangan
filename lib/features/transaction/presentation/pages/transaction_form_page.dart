@@ -9,7 +9,9 @@ import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
 
 class TransactionFormPage extends StatefulWidget {
-  const TransactionFormPage({super.key});
+  final TransactionEntity? initialTransaction;
+
+  const TransactionFormPage({super.key, this.initialTransaction});
 
   @override
   State<TransactionFormPage> createState() => _TransactionFormPageState();
@@ -35,11 +37,20 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     'Lainnya',
   ];
 
+  bool get _isEditMode => widget.initialTransaction != null;
+
   @override
   void initState() {
     super.initState();
-    _titleCtrl = TextEditingController();
-    _amountCtrl = TextEditingController();
+    final tx = widget.initialTransaction;
+    _titleCtrl = TextEditingController(text: tx?.title ?? '');
+    _amountCtrl = TextEditingController(text: tx != null ? tx.amount.toString() : '');
+
+    if (tx != null) {
+      _selectedType = tx.type;
+      _selectedCategory = tx.category;
+    }
+
     context.read<WalletCubit>().loadWallets();
   }
 
@@ -63,46 +74,49 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
       final amount = int.parse(_amountCtrl.text.trim());
 
-      final newTx = TransactionEntity(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      final txData = TransactionEntity(
+        id: _isEditMode ? widget.initialTransaction!.id : DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleCtrl.text.trim(),
         amount: amount,
-        date: DateTime.now(),
+        date: _isEditMode ? widget.initialTransaction!.date : DateTime.now(),
         category: _selectedCategory,
         type: _selectedType,
         walletId: _selectedWallet!.id,
         walletName: _selectedWallet!.name,
       );
 
-      // Simpan Transaksi
-      context.read<TransactionCubit>().add(newTx);
+      if (_isEditMode) {
+        context.read<TransactionCubit>().update(txData);
+      } else {
+        context.read<TransactionCubit>().add(txData);
 
-      // Potong / Tambah Saldo Dompet Terkait
-      final newBalance = _selectedType == TransactionType.income
-          ? _selectedWallet!.balance + amount
-          : _selectedWallet!.balance - amount;
+        // Update Saldo Dompet untuk transaksi baru
+        final newBalance = _selectedType == TransactionType.income
+            ? _selectedWallet!.balance + amount
+            : _selectedWallet!.balance - amount;
 
-      final updatedWallet = WalletEntity(
-        id: _selectedWallet!.id,
-        name: _selectedWallet!.name,
-        balance: newBalance,
-        iconName: _selectedWallet!.iconName,
-      );
-
-      context.read<WalletCubit>().add(updatedWallet);
+        context.read<WalletCubit>().add(
+              WalletEntity(
+                id: _selectedWallet!.id,
+                name: _selectedWallet!.name,
+                balance: newBalance,
+                iconName: _selectedWallet!.iconName,
+              ),
+            );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Catat Keuangan Mahasiswa')),
+      appBar: AppBar(title: Text(_isEditMode ? 'Edit Transaksi' : 'Catat Keuangan Mahasiswa')),
       body: BlocListener<TransactionCubit, TransactionState>(
         listener: (context, state) {
           if (state is DataSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Transaksi berhasil dicatat & saldo dompet terupdate!'),
+              SnackBar(
+                content: Text(_isEditMode ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil dicatat!'),
                 backgroundColor: Colors.green,
               ),
             );
@@ -121,7 +135,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Tipe: Pemasukan / Pengeluaran
                   SegmentedButton<TransactionType>(
                     segments: const [
                       ButtonSegment(
@@ -144,24 +157,20 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Judul
                   TextFormField(
                     controller: _titleCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Nama Transaksi',
-                      hintText: 'Misal: ChatGPT Plus / Kopi Kenangan',
                       border: OutlineInputBorder(),
                     ),
                     validator: (val) => (val == null || val.trim().isEmpty) ? 'Nama transaksi wajib diisi!' : null,
                   ),
                   const SizedBox(height: 16),
 
-                  // Nominal
                   TextFormField(
                     controller: _amountCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Nominal (Rp)',
-                      hintText: 'Misal: 50000',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -173,7 +182,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Dropdown Kategori
                   DropdownButtonFormField<String>(
                     value: _selectedCategory,
                     decoration: const InputDecoration(
@@ -189,12 +197,14 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Dropdown Sumber Dompet (Terintegrasi)
                   BlocBuilder<WalletCubit, WalletState>(
                     builder: (context, state) {
                       if (state is WalletSuccess) {
                         if (_selectedWallet == null && state.wallets.isNotEmpty) {
-                          _selectedWallet = state.wallets.first;
+                          _selectedWallet = state.wallets.firstWhere(
+                            (w) => _isEditMode && w.id == widget.initialTransaction?.walletId,
+                            orElse: () => state.wallets.first,
+                          );
                         }
                         return DropdownButtonFormField<WalletEntity>(
                           value: _selectedWallet,
@@ -218,7 +228,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  // Tombol Simpan
                   SizedBox(
                     width: double.infinity,
                     height: 50,
@@ -229,8 +238,8 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         }
                         return FilledButton.icon(
                           onPressed: _submit,
-                          icon: const Icon(Icons.save),
-                          label: const Text('Simpan & Update Saldo'),
+                          icon: Icon(_isEditMode ? Icons.edit : Icons.save),
+                          label: Text(_isEditMode ? 'Perbarui Transaksi' : 'Simpan Transaksi'),
                         );
                       },
                     ),
