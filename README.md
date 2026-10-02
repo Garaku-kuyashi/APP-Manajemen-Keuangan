@@ -1,17 +1,28 @@
-# mymoney
+# MyMoney
 
-A new Flutter project.
+Aplikasi manajemen keuangan berbasis Flutter untuk membantu pengguna mencatat pemasukan, pengeluaran, serta memantau kondisi keuangan secara sederhana dan terstruktur.
 
-## Getting Started
+## Anggota Kelompok
+| No | Nama | NIM |
+|---|---|---|
+| 1 | M. Fahrianor | 2409106089 |
+| 2 | Miftahul Fauzan | 2409106048 |
+| 3 | Muhammad Husein Permadi | 2409106051 |
+| 4 | Much. Trigusni Hermawan | 2409106060 |
+| 5 | Richo Anan Rizky Putra | 2409106062 |
 
-This project is a starting point for a Flutter application.
+## Fitur utama
+- Catat transaksi pemasukan dan pengeluaran
+- Kelola beberapa dompet/kas
+- Pantau saldo dan batas anggaran bulanan
+- Cari transaksi berdasarkan nama, kategori, atau dompet
+- Lihat laporan pengeluaran per kategori
+- Dukungan tema terang dan gelap
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Cara menjalankan
+1. Pastikan Flutter sudah terinstal
+2. Jalankan:
+   ```bash
+   flutter pub get
+   flutter run
+   ```
