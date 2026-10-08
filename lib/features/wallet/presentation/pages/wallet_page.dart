@@ -56,8 +56,13 @@ class _WalletPageState extends State<WalletPage> {
                   balance: int.tryParse(balanceCtrl.text.trim()) ?? 0,
                   iconName: wallet?.iconName ?? 'account_balance_wallet',
                 );
-                
-                context.read<WalletCubit>().add(walletData);
+
+                if (isEdit) {
+                  context.read<WalletCubit>().update(walletData);
+                } else {
+                  context.read<WalletCubit>().add(walletData);
+                }
+
                 Navigator.pop(dialogContext);
               }
             },

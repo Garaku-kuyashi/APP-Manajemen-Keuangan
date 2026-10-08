@@ -13,6 +13,12 @@ class AddWalletUseCase {
   Future<void> execute(WalletEntity wallet) => repository.addWallet(wallet);
 }
 
+class UpdateWalletUseCase {
+  final WalletRepository repository;
+  UpdateWalletUseCase(this.repository);
+  Future<void> execute(WalletEntity wallet) => repository.updateWallet(wallet);
+}
+
 class DeleteWalletUseCase {
   final WalletRepository repository;
   DeleteWalletUseCase(this.repository);

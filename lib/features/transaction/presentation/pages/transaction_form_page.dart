@@ -90,19 +90,21 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       } else {
         context.read<TransactionCubit>().add(txData);
 
-        // Update Saldo Dompet untuk transaksi baru
+        // Pengeluaran -> saldo dompet berkurang, Pemasukan -> saldo bertambah
         final newBalance = _selectedType == TransactionType.income
             ? _selectedWallet!.balance + amount
             : _selectedWallet!.balance - amount;
 
-        context.read<WalletCubit>().add(
-              WalletEntity(
-                id: _selectedWallet!.id,
-                name: _selectedWallet!.name,
-                balance: newBalance,
-                iconName: _selectedWallet!.iconName,
-              ),
-            );
+        // FIX: pakai update() agar dompet yang SAMA diperbarui,
+        // bukan add() yang membuat dompet baru.
+        context.read<WalletCubit>().update(
+          WalletEntity(
+            id: _selectedWallet!.id,
+            name: _selectedWallet!.name,
+            balance: newBalance,
+            iconName: _selectedWallet!.iconName,
+          ),
+        );
       }
     }
   }
@@ -200,11 +202,13 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   BlocBuilder<WalletCubit, WalletState>(
                     builder: (context, state) {
                       if (state is WalletSuccess) {
-                        if (_selectedWallet == null && state.wallets.isNotEmpty) {
-                          _selectedWallet = state.wallets.firstWhere(
-                            (w) => _isEditMode && w.id == widget.initialTransaction?.walletId,
-                            orElse: () => state.wallets.first,
-                          );
+                        if (state.wallets.isNotEmpty) {
+                          final currentId = _selectedWallet?.id ??
+                              (_isEditMode ? widget.initialTransaction?.walletId : null);
+                          _selectedWallet = state.wallets
+                              .where((w) => w.id == currentId)
+                              .firstOrNull ??
+                              state.wallets.first;
                         }
                         return DropdownButtonFormField<WalletEntity>(
                           value: _selectedWallet,
@@ -215,7 +219,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                           items: state.wallets.map((w) {
                             return DropdownMenuItem(
                               value: w,
-                              child: Text('${w.name} (Saldo: Rp ${w.balance})'),
+                              child: Text('${w.name} (Saldo: ${w.balance.toString()})'),
                             );
                           }).toList(),
                           onChanged: (val) {

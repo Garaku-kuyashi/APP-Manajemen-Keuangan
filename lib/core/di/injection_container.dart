@@ -28,6 +28,7 @@ void initDI() {
 
   // === WALLET FEATURE (BARU) ===
   sl.registerFactory<WalletCubit>(() => WalletCubit(
+        updateWallet: sl(),
         getWallets: sl(),
         addWallet: sl(),
         deleteWallet: sl(),
@@ -35,5 +36,6 @@ void initDI() {
   sl.registerLazySingleton(() => GetWalletsUseCase(sl()));
   sl.registerLazySingleton(() => AddWalletUseCase(sl()));
   sl.registerLazySingleton(() => DeleteWalletUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateWalletUseCase(sl()));
   sl.registerLazySingleton<WalletRepository>(() => WalletRepositoryImpl());
 }

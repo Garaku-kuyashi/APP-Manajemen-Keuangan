@@ -6,11 +6,13 @@ import 'wallet_state.dart';
 class WalletCubit extends Cubit<WalletState> {
   final GetWalletsUseCase getWallets;
   final AddWalletUseCase addWallet;
+  final UpdateWalletUseCase updateWallet;
   final DeleteWalletUseCase deleteWallet;
 
   WalletCubit({
     required this.getWallets,
     required this.addWallet,
+    required this.updateWallet,
     required this.deleteWallet,
   }) : super(WalletInitial());
 
@@ -24,10 +26,21 @@ class WalletCubit extends Cubit<WalletState> {
     }
   }
 
+  /// Menambah dompet BARU.
   Future<void> add(WalletEntity wallet) async {
     emit(WalletLoading());
     try {
       await addWallet.execute(wallet);
+      await loadWallets();
+    } catch (e) {
+      emit(WalletError(message: e.toString()));
+    }
+  }
+
+  Future<void> update(WalletEntity wallet) async {
+    emit(WalletLoading());
+    try {
+      await updateWallet.execute(wallet);
       await loadWallets();
     } catch (e) {
       emit(WalletError(message: e.toString()));
