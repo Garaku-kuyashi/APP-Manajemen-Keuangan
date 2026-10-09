@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../../../core/services/gemini_ai_service.dart';
 import '../../../wallet/domain/entities/wallet_entity.dart';
 import '../../../wallet/presentation/cubit/wallet_cubit.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
@@ -61,13 +63,149 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     super.dispose();
   }
 
+  void _showAiPromptDialog() {
+    final promptCtrl = TextEditingController();
+    bool isLoading = false;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.auto_awesome, color: Colors.purpleAccent),
+                SizedBox(width: 8),
+                Text('Gemini AI Express Input'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: promptCtrl,
+                  enabled: !isLoading,
+                  decoration: const InputDecoration(
+                    hintText: 'Misal: beli gemini pro dengan harga 65000 dengan menggunakan gopay',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                if (isLoading) ...[
+                  const SizedBox(height: 16),
+                  const LinearProgressIndicator(),
+                  const SizedBox(height: 8),
+                  const Text('Gemini sedang menganalisis & menyimpan...',
+                      style: TextStyle(fontSize: 12, color: Colors.grey)),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.pop(ctx),
+                child: const Text('Batal'),
+              ),
+              FilledButton.icon(
+                icon: const Icon(Icons.auto_awesome),
+                label: const Text('Proses & Simpan'),
+                onPressed: isLoading
+                    ? null
+                    : () async {
+                        final textPrompt = promptCtrl.text.trim();
+                        if (textPrompt.isNotEmpty) {
+                          setDialogState(() => isLoading = true);
+
+                          final result = await GeminiAiService.parseTransactionPrompt(textPrompt);
+
+                          if (mounted) {
+                            setDialogState(() => isLoading = false);
+                            Navigator.pop(ctx);
+
+                            if (result != null) {
+                              // Parsing angka nominal yang aman
+                              final amount = result['amount'] is int
+                                  ? result['amount'] as int
+                                  : int.tryParse(result['amount'].toString()) ?? 0;
+                              final title = result['title'] ?? 'Transaksi AI';
+                              final category = result['category'] ?? _selectedCategory;
+                              final isIncome = result['type'] == 'income';
+
+                              // Deteksi dompet kas yang sesuai dari input (misal: "gopay")
+                              final walletState = context.read<WalletCubit>().state;
+                              WalletEntity? matchedWallet;
+
+                              if (walletState is WalletSuccess && walletState.wallets.isNotEmpty) {
+                                final lowerPrompt = textPrompt.toLowerCase();
+                                matchedWallet = walletState.wallets.firstWhere(
+                                  (w) => lowerPrompt.contains(w.name.toLowerCase()),
+                                  orElse: () => walletState.wallets.first,
+                                );
+                              }
+
+                              if (matchedWallet != null) {
+                                final txData = TransactionEntity(
+                                  id: DateTime.now().millisecondsSinceEpoch.toString(),
+                                  title: title,
+                                  amount: amount,
+                                  date: DateTime.now(),
+                                  category: category,
+                                  type: isIncome ? TransactionType.income : TransactionType.expense,
+                                  walletId: matchedWallet.id,
+                                  walletName: matchedWallet.name,
+                                );
+
+                                // PROSES AUTO-SAVE LANGSUNG KE STATE CUBIT!
+                                context.read<TransactionCubit>().add(txData);
+
+                                final newBalance = isIncome
+                                    ? matchedWallet.balance + amount
+                                    : matchedWallet.balance - amount;
+
+                                context.read<WalletCubit>().add(
+                                      WalletEntity(
+                                        id: matchedWallet.id,
+                                        name: matchedWallet.name,
+                                        balance: newBalance,
+                                        iconName: matchedWallet.iconName,
+                                      ),
+                                    );
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('AI Berhasil Mencatat: $title (Rp $amount) via ${matchedWallet.name}'),
+                                    backgroundColor: Colors.green,
+                                  ),
+                                );
+                                context.pop(); // Langsung kembali ke Dashboard!
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Gagal mengekstrak teks. Coba gunakan kalimat yang lebih jelas.'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   void _submit() {
     FocusScope.of(context).unfocus();
 
     if (_formKey.currentState!.validate()) {
       if (_selectedWallet == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Pilih sumber dompet terlebih dahulu!'), backgroundColor: Colors.orange),
+          const SnackBar(
+            content: Text('Pilih sumber dompet terlebih dahulu!'),
+            backgroundColor: Colors.orange,
+          ),
         );
         return;
       }
@@ -75,7 +213,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       final amount = int.parse(_amountCtrl.text.trim());
 
       final txData = TransactionEntity(
-        id: _isEditMode ? widget.initialTransaction!.id : DateTime.now().millisecondsSinceEpoch.toString(),
+        id: _isEditMode
+            ? widget.initialTransaction!.id
+            : DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleCtrl.text.trim(),
         amount: amount,
         date: _isEditMode ? widget.initialTransaction!.date : DateTime.now(),
@@ -90,21 +230,18 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       } else {
         context.read<TransactionCubit>().add(txData);
 
-        // Pengeluaran -> saldo dompet berkurang, Pemasukan -> saldo bertambah
         final newBalance = _selectedType == TransactionType.income
             ? _selectedWallet!.balance + amount
             : _selectedWallet!.balance - amount;
 
-        // FIX: pakai update() agar dompet yang SAMA diperbarui,
-        // bukan add() yang membuat dompet baru.
-        context.read<WalletCubit>().update(
-          WalletEntity(
-            id: _selectedWallet!.id,
-            name: _selectedWallet!.name,
-            balance: newBalance,
-            iconName: _selectedWallet!.iconName,
-          ),
-        );
+        context.read<WalletCubit>().add(
+              WalletEntity(
+                id: _selectedWallet!.id,
+                name: _selectedWallet!.name,
+                balance: newBalance,
+                iconName: _selectedWallet!.iconName,
+              ),
+            );
       }
     }
   }
@@ -112,13 +249,17 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditMode ? 'Edit Transaksi' : 'Catat Keuangan Mahasiswa')),
+      appBar: AppBar(
+        title: Text(_isEditMode ? 'Edit Transaksi' : 'Catat Keuangan Mahasiswa'),
+      ),
       body: BlocListener<TransactionCubit, TransactionState>(
         listener: (context, state) {
           if (state is DataSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text(_isEditMode ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil dicatat!'),
+                content: Text(
+                  _isEditMode ? 'Transaksi berhasil diperbarui!' : 'Transaksi berhasil dicatat!',
+                ),
                 backgroundColor: Colors.green,
               ),
             );
@@ -137,6 +278,19 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (!_isEditMode) ...[
+                    OutlinedButton.icon(
+                      onPressed: _showAiPromptDialog,
+                      icon: const Icon(Icons.auto_awesome, color: Colors.purpleAccent),
+                      label: const Text('Isi & Simpan Otomatis Pakai Gemini AI 🪄'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 48),
+                        side: const BorderSide(color: Colors.purpleAccent),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   SegmentedButton<TransactionType>(
                     segments: const [
                       ButtonSegment(
@@ -163,9 +317,11 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     controller: _titleCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Nama Transaksi',
+                      hintText: 'Misal: ChatGPT Plus / Kopi Kenangan',
                       border: OutlineInputBorder(),
                     ),
-                    validator: (val) => (val == null || val.trim().isEmpty) ? 'Nama transaksi wajib diisi!' : null,
+                    validator: (val) =>
+                        (val == null || val.trim().isEmpty) ? 'Nama transaksi wajib diisi!' : null,
                   ),
                   const SizedBox(height: 16),
 
@@ -173,6 +329,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     controller: _amountCtrl,
                     decoration: const InputDecoration(
                       labelText: 'Nominal (Rp)',
+                      hintText: 'Misal: 50000',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
@@ -202,13 +359,11 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   BlocBuilder<WalletCubit, WalletState>(
                     builder: (context, state) {
                       if (state is WalletSuccess) {
-                        if (state.wallets.isNotEmpty) {
-                          final currentId = _selectedWallet?.id ??
-                              (_isEditMode ? widget.initialTransaction?.walletId : null);
-                          _selectedWallet = state.wallets
-                              .where((w) => w.id == currentId)
-                              .firstOrNull ??
-                              state.wallets.first;
+                        if (_selectedWallet == null && state.wallets.isNotEmpty) {
+                          _selectedWallet = state.wallets.firstWhere(
+                            (w) => _isEditMode && w.id == widget.initialTransaction?.walletId,
+                            orElse: () => state.wallets.first,
+                          );
                         }
                         return DropdownButtonFormField<WalletEntity>(
                           value: _selectedWallet,
@@ -219,7 +374,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                           items: state.wallets.map((w) {
                             return DropdownMenuItem(
                               value: w,
-                              child: Text('${w.name} (Saldo: ${w.balance.toString()})'),
+                              child: Text('${w.name} (Saldo: Rp ${w.balance})'),
                             );
                           }).toList(),
                           onChanged: (val) {
