@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
+import '../../../wallet/presentation/cubit/wallet_state.dart';
 import 'transaction_form_page.dart';
 import '../../../wallet/presentation/pages/wallet_page.dart';
 import '../../../report/presentation/pages/report_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
-import '../../../more/presentation/pages/more_page.dart';
+import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../wallet/presentation/cubit/wallet_cubit.dart';
+import '../../../../core/ui/app_icons.dart';
 
 class TransactionDashboard extends StatefulWidget {
   const TransactionDashboard({super.key});
@@ -26,6 +29,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   void initState() {
     super.initState();
     context.read<TransactionCubit>().loadTransactions();
+    context.read<WalletCubit>().loadWallets();
   }
 
   @override
@@ -34,19 +38,19 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
 
     // 1. DITARUH DI SINI (Item Navigasi Index ke-2)
     final destinations = [
-      const NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Home'),
-      const NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Wallet'),
-      const NavigationDestination(
-        icon: Icon(Icons.auto_awesome_outlined),
-        selectedIcon: Icon(Icons.auto_awesome, color: Colors.purpleAccent),
-        label: 'AI Chat',
-      ),
-      const NavigationDestination(icon: Icon(Icons.bar_chart), label: 'Report'),
-      const NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+      const NavigationDestination(icon: Icon(AppIcons.home), selectedIcon: Icon(AppIcons.homeActive), label: 'Home'),
+      const NavigationDestination(icon: Icon(AppIcons.wallet), selectedIcon: Icon(AppIcons.walletActive), label: 'Wallet'),
+      const NavigationDestination(icon: Icon(AppIcons.ai), selectedIcon: Icon(AppIcons.aiActive), label: 'AI Chat'),
+      const NavigationDestination(icon: Icon(AppIcons.report), selectedIcon: Icon(AppIcons.reportActive), label: 'Report'),
+      const NavigationDestination(icon: Icon(AppIcons.profile), selectedIcon: Icon(AppIcons.profileActive), label: 'Profile'),
     ];
 
     final railDestinations = destinations
-        .map((d) => NavigationRailDestination(icon: d.icon, label: Text(d.label)))
+        .map((d) => NavigationRailDestination(
+              icon: d.icon,
+              selectedIcon: d.selectedIcon,
+              label: Text(d.label),
+            ))
         .toList();
 
     // Konten Utama Dashboard
@@ -56,19 +60,21 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
         children: [
           BlocBuilder<TransactionCubit, TransactionState>(
             builder: (context, state) {
-              int totalBalance = 0;
               int totalExpense = 0;
 
               if (state is DataSuccess) {
                 for (var item in state.transactions) {
-                  if (item.type == TransactionType.income) {
-                    totalBalance += item.amount;
-                  } else {
-                    totalBalance -= item.amount;
+                  if (item.type == TransactionType.expense) {
                     totalExpense += item.amount;
                   }
                 }
               }
+
+              // Sisa uang = total saldo semua dompet (sama dengan yang dilihat AI Chat)
+              final walletState = context.watch<WalletCubit>().state;
+              final int totalBalance = walletState is WalletSuccess
+                  ? walletState.wallets.fold<int>(0, (sum, w) => sum + w.balance)
+                  : 0;
 
               final double budgetUsageRatio = (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
               final bool isOverBudget = totalExpense > _monthlyBudgetLimit;
@@ -164,7 +170,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                     ? Colors.green.withOpacity(0.2)
                                     : Colors.red.withOpacity(0.2),
                                 child: Icon(
-                                  isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                                  isIncome ? AppIcons.income : AppIcons.expense,
                                   color: isIncome ? Colors.green : Colors.red,
                                 ),
                               ),
@@ -207,7 +213,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                                    icon: const Icon(AppIcons.edit, color: Colors.blueAccent),
                                     onPressed: () {
                                       Navigator.push(
                                         context,
@@ -218,8 +224,17 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                     },
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                    onPressed: () => context.read<TransactionCubit>().delete(item.id),
+                                    icon: const Icon(AppIcons.delete, color: Colors.redAccent),
+                                    onPressed: () async {
+                                      // kembalikan saldo dompet sebelum transaksi dihapus
+                                      final walletCubit = context.read<WalletCubit>();
+                                      final txCubit = context.read<TransactionCubit>();
+                                      await walletCubit.adjustBalance(
+                                        item.walletId,
+                                        isIncome ? -item.amount : item.amount,
+                                      );
+                                      txCubit.delete(item.id);
+                                    },
                                   ),
                                 ],
                               ),
@@ -247,7 +262,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
         activeBody = const ReportPage();
         break;
       case 4:
-        activeBody = const MorePage();
+        activeBody = const ProfilePage();
         break;
       default:
         activeBody = dashboardContent;
@@ -257,7 +272,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
       floatingActionButton: _navIndex == 0
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/form'),
-              icon: const Icon(Icons.add),
+              icon: const Icon(AppIcons.add),
               label: const Text('Catat Transaksi'),
             )
           : null,

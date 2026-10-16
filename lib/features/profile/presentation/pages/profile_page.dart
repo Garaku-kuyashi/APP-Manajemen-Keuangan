@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/di/theme/theme_cubit.dart';
+import '../../../../core/ui/app_icons.dart';
+import 'settings_page.dart';
 import '../../../transaction/presentation/cubit/transaction_cubit.dart';
 import '../../../transaction/presentation/cubit/transaction_state.dart';
 import '../../../wallet/presentation/cubit/wallet_cubit.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
 
-class MorePage extends StatefulWidget {
-  const MorePage({super.key});
+class ProfilePage extends StatefulWidget {
+  const ProfilePage({super.key});
 
   @override
-  State<MorePage> createState() => _MorePageState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _MorePageState extends State<MorePage> {
+class _ProfilePageState extends State<ProfilePage> {
   String _userName = "M. Fahrianor";
-  String _userNim = "2209106000";
+  String _userNim = "2409106089";
   int _userBudget = 1500000;
 
   void _showEditProfileDialog() {
@@ -132,7 +133,7 @@ class _MorePageState extends State<MorePage> {
                 );
                 Navigator.pop(dialogCtx);
               },
-              icon: const Icon(Icons.copy),
+              icon: const Icon(Icons.copy_outlined),
               label: const Text('Salin Data'),
             ),
           ],
@@ -145,7 +146,17 @@ class _MorePageState extends State<MorePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profil & Pengaturan'),
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            tooltip: 'Pengaturan',
+            icon: const Icon(AppIcons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const SettingsPage()),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
         child: ListView(
@@ -180,7 +191,7 @@ class _MorePageState extends State<MorePage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                      icon: const Icon(AppIcons.edit, color: Colors.blueAccent),
                       onPressed: _showEditProfileDialog,
                     ),
                   ],
@@ -258,39 +269,6 @@ class _MorePageState extends State<MorePage> {
               ),
             ),
 
-            const SizedBox(height: 20),
-            const Text('Pengaturan Sistem', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 8),
-
-            Card(
-              child: Column(
-                children: [
-                  // OPSI SAKELAR LIGHT / DARK MODE REAKTIF
-                  BlocBuilder<ThemeCubit, ThemeMode>(
-                    builder: (context, themeMode) {
-                      final isDark = themeMode == ThemeMode.dark;
-                      return ListTile(
-                        leading: Icon(isDark ? Icons.dark_mode_outlined : Icons.light_mode_outlined),
-                        title: const Text('Tema Tampilan'),
-                        subtitle: Text(isDark ? 'Material 3 Dark Mode' : 'Material 3 Light Mode'),
-                        trailing: Switch(
-                          value: isDark,
-                          onChanged: (val) {
-                            context.read<ThemeCubit>().toggleTheme(val);
-                          },
-                        ),
-                      );
-                    },
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: const Icon(Icons.info_outline),
-                    title: const Text('Versi Aplikasi'),
-                    subtitle: const Text('v1.0.0 • Clean Architecture (Feature-First)'),
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),

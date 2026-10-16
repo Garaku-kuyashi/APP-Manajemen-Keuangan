@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/gemini_ai_service.dart';
+import '../../../../core/ui/app_icons.dart';
+import '../../../../core/utils/wallet_matcher.dart';
 import '../../../transaction/domain/entities/transaction_entity.dart';
 import '../../../transaction/presentation/cubit/transaction_cubit.dart';
 import '../../../transaction/presentation/cubit/transaction_state.dart';
-import '../../../wallet/domain/entities/wallet_entity.dart';
 import '../../../wallet/presentation/cubit/wallet_cubit.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
 
@@ -37,7 +38,7 @@ class _ChatPageState extends State<ChatPage> {
 
     _messages.add(
       ChatMessage(
-        text: 'Halo! Aku MyMoney AI 🤖\nAku bisa lihat sisa uang sakumu dan bantu jawab curhat keuangan kampus, kasih saran hemat, atau langsung catat transaksi secara otomatis. Mau ngobrolin apa nih?',
+        text: 'Halo! Aku MyMoney AI 🤖\nBisa curhat soal uang saku, minta saran hemat, atau langsung bilang aja misal "jajan boba 20rb pakai gopay", nanti aku catat. Lagi mikirin apa nih?',
         isUser: false,
       ),
     );
@@ -53,110 +54,72 @@ class _ChatPageState extends State<ChatPage> {
     final userText = _msgCtrl.text.trim();
     if (userText.isEmpty || _isLoading) return;
 
+    // Riwayat sebelum pesan ini (jadi memori obrolan untuk AI)
+    final history = _messages.map((m) => AiTurn(text: m.text, isUser: m.isUser)).toList();
+
     setState(() {
       _messages.add(ChatMessage(text: userText, isUser: true));
       _isLoading = true;
     });
     _msgCtrl.clear();
 
-    // 1. Ambil Sisa Saldo Total secara Realtime dari WalletCubit
-    int totalWalletBalance = 0;
-    final walletState = context.read<WalletCubit>().state;
-    if (walletState is WalletSuccess) {
-      for (var w in walletState.wallets) {
-        totalWalletBalance += w.balance;
+    final walletCubit = context.read<WalletCubit>();
+    final txCubit = context.read<TransactionCubit>();
+
+    // Pastikan data dompet sudah termuat
+    if (walletCubit.state is! WalletSuccess) await walletCubit.loadWallets();
+    final walletState = walletCubit.state;
+    final txState = txCubit.state;
+    final currentTx = txState is DataSuccess ? txState.transactions : <TransactionEntity>[];
+
+    final result = await GeminiAiService.processChatMessage(
+      userMessage: userText,
+      history: history,
+      wallets: walletState is WalletSuccess ? walletState.wallets : const [],
+      transactions: currentTx,
+    );
+
+    String replyText = result.reply;
+    final tx = result.transaction;
+
+    if (tx != null && walletState is WalletSuccess && walletState.wallets.isNotEmpty) {
+      final allWallets = walletState.wallets;
+      final matched = WalletMatcher.find(tx['wallet'] as String?, allWallets) ??
+          WalletMatcher.find(userText, allWallets);
+      final wallet = matched ?? WalletMatcher.fallback(allWallets);
+
+      final amount = tx['amount'] as int;
+      final title = tx['title'] as String;
+      final isIncome = tx['type'] == 'income';
+
+      // Update saldo dompet YANG SUDAH ADA (bukan membuat dompet baru)
+      await walletCubit.adjustBalance(wallet.id, isIncome ? amount : -amount);
+      txCubit.add(TransactionEntity(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: title,
+        amount: amount,
+        date: DateTime.now(),
+        category: tx['category'] as String,
+        type: isIncome ? TransactionType.income : TransactionType.expense,
+        walletId: wallet.id,
+        walletName: wallet.name,
+      ));
+
+      // Mode tanpa AI: balasan kosong, buat konfirmasi sederhana
+      if (replyText.isEmpty) {
+        replyText = 'Oke, sudah kucatat: $title Rp $amount via ${wallet.name} 📝'
+            '${matched == null ? ' (metode bayar tidak disebut, jadi pakai ${wallet.name})' : ''}';
       }
+    } else if (replyText.isEmpty) {
+      replyText = 'Hmm, aku belum bisa mencatatnya. Coba sebutkan nominalnya ya.';
     }
 
-    // 2. Ambil Riwayat Transaksi dari TransactionCubit
-    List<TransactionEntity> currentTx = [];
-    final txState = context.read<TransactionCubit>().state;
-    if (txState is DataSuccess) {
-      currentTx = txState.transactions;
+    if (mounted) {
+      setState(() {
+        _messages.add(ChatMessage(text: replyText, isUser: false));
+        _isLoading = false;
+      });
     }
-
-    // 3. Cek apakah ini instruksi pencatatan transaksi
-    final parseResult = await GeminiAiService.parseTransactionPrompt(userText);
-
-    if (parseResult != null && 
-        parseResult['amount'] != null && 
-        parseResult['amount'] is int && 
-        (parseResult['amount'] as int) > 0 &&
-        (userText.toLowerCase().contains('beli') || 
-         userText.toLowerCase().contains('bayar') || 
-         userText.toLowerCase().contains('dapat') || 
-         userText.toLowerCase().contains('isi'))) {
-      
-      final amount = parseResult['amount'] as int;
-      final title = parseResult['title'] ?? 'Transaksi AI';
-      final category = parseResult['category'] ?? 'Lainnya';
-      final isIncome = parseResult['type'] == 'income';
-
-      WalletEntity? matchedWallet;
-      if (walletState is WalletSuccess && walletState.wallets.isNotEmpty) {
-        final lowerText = userText.toLowerCase();
-        matchedWallet = walletState.wallets.firstWhere(
-          (w) => lowerText.contains(w.name.toLowerCase()),
-          orElse: () => walletState.wallets.first,
-        );
-      }
-
-      if (matchedWallet != null && mounted) {
-        final newTx = TransactionEntity(
-          id: DateTime.now().millisecondsSinceEpoch.toString(),
-          title: title,
-          amount: amount,
-          date: DateTime.now(),
-          category: category,
-          type: isIncome ? TransactionType.income : TransactionType.expense,
-          walletId: matchedWallet.id,
-          walletName: matchedWallet.name,
-        );
-
-        // Simpan Transaksi & Potong/Tambah Saldo Dompet
-        context.read<TransactionCubit>().add(newTx);
-        final newBalance = isIncome
-            ? matchedWallet.balance + amount
-            : matchedWallet.balance - amount;
-
-        context.read<WalletCubit>().add(
-              WalletEntity(
-                id: matchedWallet.id,
-                name: matchedWallet.name,
-                balance: newBalance,
-                iconName: matchedWallet.iconName,
-              ),
-            );
-
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              text: 'Sip, udah aku catat ya! 📝\n'
-                  '• Judul: $title\n'
-                  '• Nominal: Rp $amount\n'
-                  '• Sumber: ${matchedWallet!.name}\n\n'
-                  'Sisa total uang kamu sekarang: Rp ${isIncome ? totalWalletBalance + amount : totalWalletBalance - amount}.',
-              isUser: false,
-            ),
-          );
-        });
-      }
-    } else {
-      // 4. Jika Obrolan Biasa / Tanya Sisa Saldo / Curhat Finansial
-      final aiReply = await GeminiAiService.chatWithStudentAdvisor(
-        userMessage: userText,
-        transactions: currentTx,
-        totalBalance: totalWalletBalance,
-      );
-
-      if (mounted) {
-        setState(() {
-          _messages.add(ChatMessage(text: aiReply, isUser: false));
-        });
-      }
-    }
-
-    setState(() => _isLoading = false);
   }
 
   @override
@@ -165,7 +128,7 @@ class _ChatPageState extends State<ChatPage> {
       appBar: AppBar(
         title: const Row(
           children: [
-            Icon(Icons.auto_awesome, color: Colors.purpleAccent),
+            Icon(AppIcons.aiActive, color: AppIcons.aiColor),
             SizedBox(width: 8),
             Text('Teman Keuangan AI'),
           ],
@@ -227,7 +190,7 @@ class _ChatPageState extends State<ChatPage> {
                     child: TextField(
                       controller: _msgCtrl,
                       decoration: const InputDecoration(
-                        hintText: 'Tanya sisa saldo atau curhat...',
+                        hintText: 'Ketik bebas: tanya saldo, curhat, atau catat transaksi...',
                         border: OutlineInputBorder(),
                         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       ),
@@ -237,7 +200,7 @@ class _ChatPageState extends State<ChatPage> {
                   const SizedBox(width: 8),
                   IconButton.filled(
                     onPressed: _handleSend,
-                    icon: const Icon(Icons.send),
+                    icon: const Icon(AppIcons.send),
                   ),
                 ],
               ),

@@ -48,3 +48,6 @@ app.*.map.json
 .widget_preview/
 
 lib/core/services/api_config.dart
+
+# API key lokal
+env.json

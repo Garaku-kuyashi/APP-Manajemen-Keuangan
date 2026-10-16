@@ -12,7 +12,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       category: 'Uang Saku',
       type: TransactionType.income,
       walletId: 'w2',
-      walletName: 'Rekening Utama (BCA)',
+      walletName: 'BCA',
     ),
     TransactionModel(
       id: '2',
@@ -22,7 +22,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       category: 'Langganan AI',
       type: TransactionType.expense,
       walletId: 'w1',
-      walletName: 'Gopay / OVO',
+      walletName: 'Gopay',
     ),
     TransactionModel(
       id: '3',
@@ -32,7 +32,7 @@ class TransactionRepositoryImpl implements TransactionRepository {
       category: 'Hiburan & Streaming',
       type: TransactionType.expense,
       walletId: 'w1',
-      walletName: 'Gopay / OVO',
+      walletName: 'Gopay',
     ),
   ];
 

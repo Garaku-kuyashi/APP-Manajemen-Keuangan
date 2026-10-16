@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/ui/app_icons.dart';
 import '../../domain/entities/wallet_entity.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';
@@ -102,7 +103,7 @@ class _WalletPageState extends State<WalletPage> {
                         margin: const EdgeInsets.only(bottom: 12),
                         child: ListTile(
                           leading: const CircleAvatar(
-                            child: Icon(Icons.account_balance_wallet),
+                            child: Icon(AppIcons.walletActive),
                           ),
                           title: Text(item.name, style: const TextStyle(fontWeight: FontWeight.bold)),
                           subtitle: Text('Saldo: Rp ${item.balance}'),
@@ -110,11 +111,11 @@ class _WalletPageState extends State<WalletPage> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.edit_outlined, color: Colors.blueAccent),
+                                icon: const Icon(AppIcons.edit, color: Colors.blueAccent),
                                 onPressed: () => _showWalletDialog(wallet: item),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.redAccent),
+                                icon: const Icon(AppIcons.delete, color: Colors.redAccent),
                                 onPressed: () => context.read<WalletCubit>().delete(item.id),
                               ),
                             ],

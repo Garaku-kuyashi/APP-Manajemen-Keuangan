@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/ui/app_icons.dart';
 import '../../../transaction/domain/entities/transaction_entity.dart';
 import '../../../transaction/presentation/cubit/transaction_cubit.dart';
 import '../../../transaction/presentation/cubit/transaction_state.dart';
@@ -89,7 +90,7 @@ class _SearchPageState extends State<SearchPage> {
                                 ? Colors.green.withOpacity(0.2)
                                 : Colors.red.withOpacity(0.2),
                             child: Icon(
-                              isIncome ? Icons.arrow_downward : Icons.arrow_upward,
+                              isIncome ? AppIcons.income : AppIcons.expense,
                               color: isIncome ? Colors.green : Colors.red,
                             ),
                           ),

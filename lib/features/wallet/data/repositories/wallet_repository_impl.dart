@@ -7,19 +7,19 @@ class WalletRepositoryImpl implements WalletRepository {
   final List<WalletModel> _mockWallets = [
     const WalletModel(
       id: 'w1',
-      name: 'Gopay / OVO',
+      name: 'Gopay',
       balance: 150000,
       iconName: 'account_balance_wallet',
     ),
     const WalletModel(
       id: 'w2',
-      name: 'Rekening Utama (BCA)',
+      name: 'BCA',
       balance: 2000000,
       iconName: 'account_balance',
     ),
     const WalletModel(
       id: 'w3',
-      name: 'Dompet Tunai (Cash)',
+      name: 'Cash',
       balance: 350000,
       iconName: 'payments',
     ),

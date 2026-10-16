@@ -56,4 +56,24 @@ class WalletCubit extends Cubit<WalletState> {
       emit(WalletError(message: e.toString()));
     }
   }
+
+  /// Menambah/mengurangi saldo dompet yang SUDAH ADA (tanpa membuat dompet baru).
+  /// [delta] positif = saldo bertambah, negatif = saldo berkurang.
+  Future<void> adjustBalance(String walletId, int delta) async {
+    try {
+      final wallets = await getWallets.execute();
+      final target = wallets.where((w) => w.id == walletId);
+      if (target.isEmpty) return;
+      final w = target.first;
+      await updateWallet.execute(WalletEntity(
+        id: w.id,
+        name: w.name,
+        balance: w.balance + delta,
+        iconName: w.iconName,
+      ));
+      await loadWallets();
+    } catch (e) {
+      emit(WalletError(message: e.toString()));
+    }
+  }
 }
