@@ -51,3 +51,8 @@ lib/core/services/api_config.dart
 
 # API key lokal
 env.json
+
+# Firebase project configuration
+firebase.json
+lib/firebase_options.dart
+android/app/google-services.json

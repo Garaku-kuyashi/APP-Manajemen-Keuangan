@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../login/login_feature.dart';
 import '../../../../core/ui/app_icons.dart';
 import 'settings_page.dart';
 import '../../../transaction/presentation/cubit/transaction_cubit.dart';
@@ -155,6 +156,11 @@ class _ProfilePageState extends State<ProfilePage> {
               context,
               MaterialPageRoute(builder: (_) => const SettingsPage()),
             ),
+          ),
+          IconButton(
+            tooltip: 'Keluar',
+            icon: const Icon(Icons.logout),
+            onPressed: () => context.read<AuthCubit>().logout(),
           ),
         ],
       ),
