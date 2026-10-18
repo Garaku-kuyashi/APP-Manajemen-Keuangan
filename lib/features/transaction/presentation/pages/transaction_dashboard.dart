@@ -38,19 +38,41 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
 
     // 1. DITARUH DI SINI (Item Navigasi Index ke-2)
     final destinations = [
-      const NavigationDestination(icon: Icon(AppIcons.home), selectedIcon: Icon(AppIcons.homeActive), label: 'Home'),
-      const NavigationDestination(icon: Icon(AppIcons.wallet), selectedIcon: Icon(AppIcons.walletActive), label: 'Wallet'),
-      const NavigationDestination(icon: Icon(AppIcons.ai), selectedIcon: Icon(AppIcons.aiActive), label: 'AI Chat'),
-      const NavigationDestination(icon: Icon(AppIcons.report), selectedIcon: Icon(AppIcons.reportActive), label: 'Report'),
-      const NavigationDestination(icon: Icon(AppIcons.profile), selectedIcon: Icon(AppIcons.profileActive), label: 'Profile'),
+      const NavigationDestination(
+        icon: Icon(AppIcons.home),
+        selectedIcon: Icon(AppIcons.homeActive),
+        label: 'Home',
+      ),
+      const NavigationDestination(
+        icon: Icon(AppIcons.wallet),
+        selectedIcon: Icon(AppIcons.walletActive),
+        label: 'Wallet',
+      ),
+      const NavigationDestination(
+        icon: Icon(AppIcons.ai),
+        selectedIcon: Icon(AppIcons.aiActive),
+        label: 'AI Chat',
+      ),
+      const NavigationDestination(
+        icon: Icon(AppIcons.report),
+        selectedIcon: Icon(AppIcons.reportActive),
+        label: 'Report',
+      ),
+      const NavigationDestination(
+        icon: Icon(AppIcons.profile),
+        selectedIcon: Icon(AppIcons.profileActive),
+        label: 'Profile',
+      ),
     ];
 
     final railDestinations = destinations
-        .map((d) => NavigationRailDestination(
-              icon: d.icon,
-              selectedIcon: d.selectedIcon,
-              label: Text(d.label),
-            ))
+        .map(
+          (d) => NavigationRailDestination(
+            icon: d.icon,
+            selectedIcon: d.selectedIcon,
+            label: Text(d.label),
+          ),
+        )
         .toList();
 
     // Konten Utama Dashboard
@@ -73,10 +95,14 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
               // Sisa uang = total saldo semua dompet (sama dengan yang dilihat AI Chat)
               final walletState = context.watch<WalletCubit>().state;
               final int totalBalance = walletState is WalletSuccess
-                  ? walletState.wallets.fold<int>(0, (sum, w) => sum + w.balance)
+                  ? walletState.wallets.fold<int>(
+                      0,
+                      (sum, w) => sum + w.balance,
+                    )
                   : 0;
 
-              final double budgetUsageRatio = (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
+              final double budgetUsageRatio =
+                  (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
               final bool isOverBudget = totalExpense > _monthlyBudgetLimit;
 
               return Card(
@@ -87,23 +113,36 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Sisa Uang Saku 🔒', style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        'Sisa Uang Saku 🔒',
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       const SizedBox(height: 4),
                       Text(
                         'Rp $totalBalance',
-                        style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                        style: Theme.of(context).textTheme.headlineLarge
+                            ?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: totalBalance >= 0 ? Colors.greenAccent : Colors.redAccent,
+                              color: totalBalance >= 0
+                                  ? Colors.greenAccent
+                                  : Colors.redAccent,
                             ),
                       ),
                       const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.arrow_downward, color: Colors.redAccent, size: 16),
+                          const Icon(
+                            Icons.arrow_downward,
+                            color: Colors.redAccent,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             'Total Pengeluaran: Rp $totalExpense',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -112,16 +151,23 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            isOverBudget ? '⚠️ Pengeluaran Melebihi Target!' : 'Batas Target Anggaran',
+                            isOverBudget
+                                ? '⚠️ Pengeluaran Melebihi Target!'
+                                : 'Batas Target Anggaran',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: isOverBudget ? Colors.redAccent : Colors.white70,
+                              color: isOverBudget
+                                  ? Colors.redAccent
+                                  : Colors.white70,
                             ),
                           ),
                           Text(
                             'Rp $totalExpense / Rp $_monthlyBudgetLimit',
-                            style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey,
+                            ),
                           ),
                         ],
                       ),
@@ -130,7 +176,9 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                         value: budgetUsageRatio,
                         minHeight: 8,
                         borderRadius: BorderRadius.circular(4),
-                        color: budgetUsageRatio > 0.8 ? Colors.redAccent : Colors.orangeAccent,
+                        color: budgetUsageRatio > 0.8
+                            ? Colors.redAccent
+                            : Colors.orangeAccent,
                         backgroundColor: Colors.grey.shade800,
                       ),
                     ],
@@ -153,94 +201,137 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
             child: BlocBuilder<TransactionCubit, TransactionState>(
               builder: (context, state) {
                 return switch (state) {
-                  DataInitial() => const Center(child: Text('Menyiapkan Data...')),
-                  DataLoading() => const Center(child: CircularProgressIndicator.adaptive()),
-                  DataError(:final message) => Center(child: Text('Galat: $message')),
-                  DataSuccess(:final transactions) => transactions.isEmpty
-                      ? const Center(child: Text('Belum ada transaksi.'))
-                      : ListView.builder(
-                          itemCount: transactions.length,
-                          itemBuilder: (context, index) {
-                            final item = transactions[index];
-                            final isIncome = item.type == TransactionType.income;
+                  DataInitial() => const Center(
+                    child: Text('Menyiapkan Data...'),
+                  ),
+                  DataLoading() => const Center(
+                    child: CircularProgressIndicator.adaptive(),
+                  ),
+                  DataError(:final message) => Center(
+                    child: Text('Galat: $message'),
+                  ),
+                  DataSuccess(:final transactions) =>
+                    transactions.isEmpty
+                        ? const Center(child: Text('Belum ada transaksi.'))
+                        : ListView.builder(
+                            itemCount: transactions.length,
+                            itemBuilder: (context, index) {
+                              final item = transactions[index];
+                              final isIncome =
+                                  item.type == TransactionType.income;
 
-                            return ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: isIncome
-                                    ? Colors.green.withOpacity(0.2)
-                                    : Colors.red.withOpacity(0.2),
-                                child: Icon(
-                                  isIncome ? AppIcons.income : AppIcons.expense,
-                                  color: isIncome ? Colors.green : Colors.red,
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: isIncome
+                                      ? Colors.green.withValues(alpha: 0.2)
+                                      : Colors.red.withValues(alpha: 0.2),
+                                  child: Icon(
+                                    isIncome
+                                        ? AppIcons.income
+                                        : AppIcons.expense,
+                                    color: isIncome ? Colors.green : Colors.red,
+                                  ),
                                 ),
-                              ),
-                              title: Row(
-                                children: [
-                                  Expanded(
-                                    child: Text(
-                                      item.title,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                                title: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        item.title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
-                                  ),
-                                  Text(
-                                    '${isIncome ? '+' : '-'} Rp ${item.amount}',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      color: isIncome ? Colors.greenAccent : Colors.redAccent,
+                                    Text(
+                                      '${isIncome ? '+' : '-'} Rp ${item.amount}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: isIncome
+                                            ? Colors.greenAccent
+                                            : Colors.redAccent,
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                              subtitle: Row(
-                                children: [
-                                  Chip(
-                                    label: Text(
-                                      item.category,
-                                      style: const TextStyle(fontSize: 10),
+                                  ],
+                                ),
+                                subtitle: Row(
+                                  children: [
+                                    Chip(
+                                      label: Text(
+                                        item.category,
+                                        style: const TextStyle(fontSize: 10),
+                                      ),
+                                      padding: EdgeInsets.zero,
+                                      materialTapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                     ),
-                                    padding: EdgeInsets.zero,
-                                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    '${item.walletName} • ${item.date.toString().substring(0, 10)}',
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(AppIcons.edit, color: Colors.blueAccent),
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => TransactionFormPage(initialTransaction: item),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(AppIcons.delete, color: Colors.redAccent),
-                                    onPressed: () async {
-                                      // kembalikan saldo dompet sebelum transaksi dihapus
-                                      final walletCubit = context.read<WalletCubit>();
-                                      final txCubit = context.read<TransactionCubit>();
-                                      await walletCubit.adjustBalance(
-                                        item.walletId,
-                                        isIncome ? -item.amount : item.amount,
-                                      );
-                                      txCubit.delete(item.id);
-                                    },
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      '${item.walletName} • ${item.date.toString().substring(0, 10)}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      icon: const Icon(
+                                        AppIcons.edit,
+                                        color: Colors.blueAccent,
+                                      ),
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                TransactionFormPage(
+                                                  initialTransaction: item,
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    IconButton(
+                                      icon: const Icon(
+                                        AppIcons.delete,
+                                        color: Colors.redAccent,
+                                      ),
+                                      onPressed: () async {
+                                        // kembalikan saldo dompet sebelum transaksi dihapus
+                                        final walletCubit = context
+                                            .read<WalletCubit>();
+                                        final txCubit = context
+                                            .read<TransactionCubit>();
+                                        final adjusted = await walletCubit
+                                            .adjustBalance(
+                                              item.walletId,
+                                              isIncome
+                                                  ? -item.amount
+                                                  : item.amount,
+                                            );
+                                        if (!context.mounted) return;
+                                        if (!adjusted) {
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                                const SnackBar(
+                                                  content: Text(
+                                                    'Saldo dompet gagal diperbarui. Transaksi tidak dihapus.',
+                                                  ),
+                                                  backgroundColor: Colors.red,
+                                                ),
+                                              );
+                                          return;
+                                        }
+                                        txCubit.delete(item.id);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
                 };
               },
             ),
@@ -282,7 +373,8 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
               children: [
                 NavigationRail(
                   selectedIndex: _navIndex,
-                  onDestinationSelected: (val) => setState(() => _navIndex = val),
+                  onDestinationSelected: (val) =>
+                      setState(() => _navIndex = val),
                   destinations: railDestinations,
                 ),
                 Expanded(child: activeBody),

@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../domain/entities/wallet_entity.dart';
 import '../../domain/usecases/wallet_usecases.dart';
 import 'wallet_state.dart';
@@ -59,21 +60,27 @@ class WalletCubit extends Cubit<WalletState> {
 
   /// Menambah/mengurangi saldo dompet yang SUDAH ADA (tanpa membuat dompet baru).
   /// [delta] positif = saldo bertambah, negatif = saldo berkurang.
-  Future<void> adjustBalance(String walletId, int delta) async {
+  Future<bool> adjustBalance(String walletId, int delta) async {
     try {
       final wallets = await getWallets.execute();
       final target = wallets.where((w) => w.id == walletId);
-      if (target.isEmpty) return;
+      if (target.isEmpty) return false;
       final w = target.first;
-      await updateWallet.execute(WalletEntity(
-        id: w.id,
-        name: w.name,
-        balance: w.balance + delta,
-        iconName: w.iconName,
-      ));
+      final newBalance = w.balance + delta;
+      if (newBalance < 0) return false;
+      await updateWallet.execute(
+        WalletEntity(
+          id: w.id,
+          name: w.name,
+          balance: newBalance,
+          iconName: w.iconName,
+        ),
+      );
       await loadWallets();
+      return true;
     } catch (e) {
       emit(WalletError(message: e.toString()));
+      return false;
     }
   }
 }
