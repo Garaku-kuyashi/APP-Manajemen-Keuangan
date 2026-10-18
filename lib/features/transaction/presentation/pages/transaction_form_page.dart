@@ -419,10 +419,15 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                               (_isEditMode
                                   ? widget.initialTransaction?.walletId
                                   : null);
-                          _selectedWallet = state.wallets.firstWhere(
-                            (w) => w.id == keepId,
-                            orElse: () => state.wallets.first,
-                          );
+                          WalletEntity? matchingWallet;
+                          for (final wallet in state.wallets) {
+                            if (wallet.id == keepId) {
+                              matchingWallet = wallet;
+                              break;
+                            }
+                          }
+                          _selectedWallet =
+                              matchingWallet ?? state.wallets.first;
                         }
                         return DropdownButtonFormField<WalletEntity>(
                           initialValue: _selectedWallet,
