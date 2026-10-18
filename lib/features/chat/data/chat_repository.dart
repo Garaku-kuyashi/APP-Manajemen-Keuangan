@@ -54,7 +54,6 @@ class ChatMessage {
       createdAt: _toDate(data['createdAt']),
     );
   }
-
 }
 
 class ChatRepository {
@@ -70,7 +69,10 @@ class ChatRepository {
         'A verified Firebase user is required to access chat history.',
       );
     }
-    return _firestore.collection('users').doc(user.uid).collection('chatTopics');
+    return _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('chatTopics');
   }
 
   Stream<List<ChatTopic>> watchTopics() => _topics
@@ -91,17 +93,31 @@ class ChatRepository {
         .orderBy('createdAt', descending: true)
         .limit(limit)
         .get();
-    return snapshot.docs.map(ChatMessage.fromDocument).toList().reversed.toList();
+    return snapshot.docs
+        .map(ChatMessage.fromDocument)
+        .toList()
+        .reversed
+        .toList();
   }
 
-  Future<String> createTopic(String firstMessage) async {
+  Future<String> createTopic(
+    String firstMessage, {
+    required String welcomeMessage,
+  }) async {
     final topic = _topics.doc();
     final now = Timestamp.now();
-    await topic.set({
+    final batch = _firestore.batch();
+    batch.set(topic, {
       'title': _titleFrom(firstMessage),
       'createdAt': now,
       'updatedAt': now,
     });
+    batch.set(topic.collection('messages').doc(), {
+      'text': welcomeMessage,
+      'role': 'assistant',
+      'createdAt': now,
+    });
+    await batch.commit();
     return topic.id;
   }
 

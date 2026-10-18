@@ -13,6 +13,11 @@ import '../../../wallet/presentation/cubit/wallet_state.dart';
 import '../../../wallet/domain/entities/wallet_entity.dart';
 import '../../data/chat_repository.dart';
 
+const _welcomeMessage =
+    'Halo! Aku MyMoney AI 🤖\n'
+    'Bisa curhat soal uang saku, minta saran hemat, atau langsung bilang aja '
+    'misal "jajan boba 20rb pakai gopay", nanti aku catat. Lagi mikirin apa nih?';
+
 class ChatPage extends StatefulWidget {
   const ChatPage({super.key});
 
@@ -52,21 +57,20 @@ class _ChatPageState extends State<ChatPage> {
     _messageController.clear();
 
     try {
-      final topicId = _activeTopicId ?? await repository.createTopic(text);
+      final isNewTopic = _activeTopicId == null;
+      final topicId =
+          _activeTopicId ??
+          await repository.createTopic(text, welcomeMessage: _welcomeMessage);
       if (!mounted) return;
       setState(() {
         _activeTopicId = topicId;
         _isCreatingTopic = false;
       });
 
-      final previousMessages = _activeTopicId == null
+      final previousMessages = isNewTopic
           ? <ChatMessage>[]
           : await repository.getRecentMessages(topicId, limit: 20);
-      await repository.addMessage(
-        topicId: topicId,
-        text: text,
-        isUser: true,
-      );
+      await repository.addMessage(topicId: topicId, text: text, isUser: true);
 
       await walletCubit.loadWallets();
       await transactionCubit.loadTransactions();
@@ -82,10 +86,9 @@ class _ChatPageState extends State<ChatPage> {
       final result = await GeminiAiService.processChatMessage(
         userMessage: text,
         history: previousMessages
-            .map((message) => AiTurn(
-                  text: message.text,
-                  isUser: message.isUser,
-                ))
+            .map(
+              (message) => AiTurn(text: message.text, isUser: message.isUser),
+            )
             .toList(),
         wallets: wallets,
         transactions: transactions,
@@ -98,7 +101,10 @@ class _ChatPageState extends State<ChatPage> {
           reply = 'Buat dompet terlebih dahulu sebelum mencatat transaksi.';
         } else {
           final matched =
-              WalletMatcher.find(parsedTransaction['wallet'] as String?, wallets) ??
+              WalletMatcher.find(
+                parsedTransaction['wallet'] as String?,
+                wallets,
+              ) ??
               WalletMatcher.find(text, wallets);
           final wallet = matched ?? WalletMatcher.fallback(wallets);
           final isIncome = parsedTransaction['type'] == 'income';
@@ -145,11 +151,7 @@ class _ChatPageState extends State<ChatPage> {
         reply = 'Maaf, aku belum bisa menjawab. Coba tanyakan lagi ya.';
       }
 
-      await repository.addMessage(
-        topicId: topicId,
-        text: reply,
-        isUser: false,
-      );
+      await repository.addMessage(topicId: topicId, text: reply, isUser: false);
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context)
@@ -168,9 +170,8 @@ class _ChatPageState extends State<ChatPage> {
       await context.read<ChatRepository>().deleteTopic(topic.id);
     } catch (error) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Topik gagal dihapus: $error')),
-      );
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Topik gagal dihapus: $error')));
     }
   }
 
@@ -188,9 +189,9 @@ class _ChatPageState extends State<ChatPage> {
                 onPressed: _isSending
                     ? null
                     : () => setState(() {
-                          _activeTopicId = null;
-                          _isCreatingTopic = false;
-                        }),
+                        _activeTopicId = null;
+                        _isCreatingTopic = false;
+                      }),
                 icon: const Icon(Icons.arrow_back),
               )
             : null,
@@ -294,8 +295,18 @@ class _ChatPageState extends State<ChatPage> {
       children: [
         Expanded(
           child: topicId == null
-              ? const Center(
-                  child: Text('Tulis pesan untuk memulai topik baru.'),
+              ? ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    _buildMessage(
+                      ChatMessage(
+                        id: 'welcome',
+                        text: _welcomeMessage,
+                        isUser: false,
+                        createdAt: DateTime.now(),
+                      ),
+                    ),
+                  ],
                 )
               : StreamBuilder<List<ChatMessage>>(
                   stream: repository.watchMessages(topicId),
@@ -310,8 +321,7 @@ class _ChatPageState extends State<ChatPage> {
                         child: CircularProgressIndicator.adaptive(),
                       );
                     }
-                    final messages =
-                        snapshot.data ?? const <ChatMessage>[];
+                    final messages = snapshot.data ?? const <ChatMessage>[];
                     WidgetsBinding.instance.addPostFrameCallback((_) {
                       if (_scrollController.hasClients) {
                         _scrollController.jumpTo(
@@ -378,8 +388,7 @@ class _ChatPageState extends State<ChatPage> {
 
   Widget _buildMessage(ChatMessage message) {
     return Align(
-      alignment:
-          message.isUser ? Alignment.centerRight : Alignment.centerLeft,
+      alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(14),
