@@ -5,4 +5,5 @@ abstract class WalletRepository {
   Future<void> addWallet(WalletEntity wallet);
   Future<void> updateWallet(WalletEntity wallet);
   Future<void> deleteWallet(String id);
+  Future<bool> adjustBalance(String walletId, int delta);
 }

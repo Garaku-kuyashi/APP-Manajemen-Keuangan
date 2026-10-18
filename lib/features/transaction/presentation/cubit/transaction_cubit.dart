@@ -26,34 +26,40 @@ class TransactionCubit extends Cubit<TransactionState> {
     }
   }
 
-  Future<void> add(TransactionEntity transaction) async {
+  Future<bool> add(TransactionEntity transaction) async {
     emit(DataLoading());
     try {
       await addTransaction.execute(transaction);
       await loadTransactions();
+      return state is DataSuccess;
     } catch (e) {
       emit(DataError(message: e.toString()));
+      return false;
     }
   }
 
   // METHOD EDIT / UPDATE TRANSAKSI
-  Future<void> update(TransactionEntity transaction) async {
+  Future<bool> update(TransactionEntity transaction) async {
     emit(DataLoading());
     try {
       await updateTransaction.execute(transaction);
       await loadTransactions();
+      return state is DataSuccess;
     } catch (e) {
       emit(DataError(message: e.toString()));
+      return false;
     }
   }
 
-  Future<void> delete(String id) async {
+  Future<bool> delete(String id) async {
     emit(DataLoading());
     try {
       await deleteTransaction.execute(id);
       await loadTransactions();
+      return state is DataSuccess;
     } catch (e) {
       emit(DataError(message: e.toString()));
+      return false;
     }
   }
 }

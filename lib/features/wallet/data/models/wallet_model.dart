@@ -10,10 +10,10 @@ class WalletModel extends WalletEntity {
 
   factory WalletModel.fromJson(Map<String, dynamic> json) {
     return WalletModel(
-      id: json['id'],
-      name: json['name'],
-      balance: json['balance'],
-      iconName: json['iconName'] ?? 'wallet',
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      balance: json['balance'] as int? ?? 0,
+      iconName: json['iconName'] as String? ?? 'account_balance_wallet',
     );
   }
 

@@ -126,7 +126,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         final walletState = context.read<WalletCubit>().state;
                         final names = walletState is WalletSuccess
                             ? walletState.wallets.map((w) => w.name).toList()
-                            : const ['Gopay', 'BCA', 'Cash'];
+                            : const <String>[];
 
                         final result =
                             await GeminiAiService.parseTransactionPrompt(
@@ -159,12 +159,11 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     );
   }
 
-  /// Menyimpan hasil parsing AI: cocokkan dompet, catat transaksi, update saldo dompet (bukan membuat dompet baru).
+  /// Saves the parsed transaction using one of the user's existing wallets.
   Future<void> _saveAiResult(Map<String, dynamic> result, String prompt) async {
     final walletCubit = context.read<WalletCubit>();
     final txCubit = context.read<TransactionCubit>();
     final messenger = ScaffoldMessenger.of(context);
-    final router = GoRouter.of(context);
 
     final walletState = walletCubit.state;
     if (walletState is! WalletSuccess || walletState.wallets.isEmpty) {
@@ -200,27 +199,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       return;
     }
 
-    final adjusted = await walletCubit.adjustBalance(
-      wallet.id,
-      TransactionBalanceRules.effect(
-        isIncome ? TransactionType.income : TransactionType.expense,
-        amount,
-      ),
-    );
-    if (!adjusted) {
-      messenger.showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Saldo dompet gagal diperbarui. Transaksi tidak disimpan.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-    txCubit.add(
+    final saved = await txCubit.add(
       TransactionEntity(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
         title: title,
         amount: amount,
         date: DateTime.now(),
@@ -230,17 +211,8 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         walletName: wallet.name,
       ),
     );
-
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          'Tercatat: $title (Rp $amount) via ${wallet.name}'
-          '${matched == null ? ' • metode bayar tidak disebut, dipakai ${wallet.name}' : ''}',
-        ),
-        backgroundColor: Colors.green,
-      ),
-    );
-    router.pop();
+    if (!saved) return;
+    await walletCubit.loadWallets();
   }
 
   Future<void> _submit() async {
@@ -279,7 +251,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       final txData = TransactionEntity(
         id: _isEditMode
             ? widget.initialTransaction!.id
-            : DateTime.now().millisecondsSinceEpoch.toString(),
+            : DateTime.now().microsecondsSinceEpoch.toString(),
         title: _titleCtrl.text.trim(),
         amount: amount,
         date: _isEditMode ? widget.initialTransaction!.date : DateTime.now(),
@@ -291,45 +263,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
       final walletCubit = context.read<WalletCubit>();
       final txCubit = context.read<TransactionCubit>();
-      int effect(TransactionType t, int a) =>
-          TransactionBalanceRules.effect(t, a);
-
-      if (_isEditMode) {
-        final old = widget.initialTransaction!;
-        // batalkan efek transaksi lama, lalu terapkan efek yang baru
-        if (old.walletId == _selectedWallet!.id) {
-          final adjusted = await walletCubit.adjustBalance(
-            old.walletId,
-            -effect(old.type, old.amount) + effect(_selectedType, amount),
-          );
-          if (!adjusted) return;
-        } else {
-          final restored = await walletCubit.adjustBalance(
-            old.walletId,
-            -effect(old.type, old.amount),
-          );
-          if (!restored) return;
-          final applied = await walletCubit.adjustBalance(
-            _selectedWallet!.id,
-            effect(_selectedType, amount),
-          );
-          if (!applied) {
-            await walletCubit.adjustBalance(
-              old.walletId,
-              effect(old.type, old.amount),
-            );
-            return;
-          }
-        }
-        txCubit.update(txData);
-      } else {
-        final adjusted = await walletCubit.adjustBalance(
-          _selectedWallet!.id,
-          effect(_selectedType, amount),
-        );
-        if (!adjusted) return;
-        txCubit.add(txData);
-      }
+      final saved = _isEditMode
+          ? await txCubit.update(txData)
+          : await txCubit.add(txData);
+      if (saved) await walletCubit.loadWallets();
     }
   }
 

@@ -299,32 +299,28 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                         color: Colors.redAccent,
                                       ),
                                       onPressed: () async {
-                                        // kembalikan saldo dompet sebelum transaksi dihapus
                                         final walletCubit = context
                                             .read<WalletCubit>();
                                         final txCubit = context
                                             .read<TransactionCubit>();
-                                        final adjusted = await walletCubit
-                                            .adjustBalance(
-                                              item.walletId,
-                                              isIncome
-                                                  ? -item.amount
-                                                  : item.amount,
-                                            );
+                                        final deleted =
+                                            await txCubit.delete(item.id);
                                         if (!context.mounted) return;
-                                        if (!adjusted) {
+                                        if (deleted) {
+                                          await walletCubit.loadWallets();
+                                        } else {
+                                          final errorState = txCubit.state;
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
-                                                const SnackBar(
+                                                SnackBar(
                                                   content: Text(
-                                                    'Saldo dompet gagal diperbarui. Transaksi tidak dihapus.',
+                                                    errorState is DataError
+                                                        ? errorState.message
+                                                        : 'Transaksi gagal dihapus.',
                                                   ),
-                                                  backgroundColor: Colors.red,
                                                 ),
                                               );
-                                          return;
                                         }
-                                        txCubit.delete(item.id);
                                       },
                                     ),
                                   ],

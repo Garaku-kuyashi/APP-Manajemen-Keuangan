@@ -24,3 +24,11 @@ class DeleteWalletUseCase {
   DeleteWalletUseCase(this.repository);
   Future<void> execute(String id) => repository.deleteWallet(id);
 }
+
+class AdjustWalletBalanceUseCase {
+  final WalletRepository repository;
+  AdjustWalletBalanceUseCase(this.repository);
+
+  Future<bool> execute(String walletId, int delta) =>
+      repository.adjustBalance(walletId, delta);
+}

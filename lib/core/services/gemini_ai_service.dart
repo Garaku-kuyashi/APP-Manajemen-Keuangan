@@ -249,7 +249,7 @@ class GeminiAiService {
 
   static Future<Map<String, dynamic>?> parseTransactionPrompt(
     String userPrompt, {
-    List<String> walletNames = const ['Gopay', 'BCA', 'Cash'],
+    List<String> walletNames = const [],
   }) async {
     final today = DateTime.now().toString().substring(0, 10);
     final system = '''
@@ -265,16 +265,16 @@ Aturan:
 - title: nama transaksi singkat dan rapi (mis. "Gemini Pro", "Kopi Kenangan"), tanpa nominal & tanpa nama dompet.
 - category: pilih persis salah satu dari ${categories.map((c) => '"$c"').join(', ')}.
 - type: "income" jika uang masuk (gaji, uang saku, dikirim, dapat, terima, bonus), selain itu "expense".
-- wallet: pilih persis salah satu dari ${walletNames.map((c) => '"$c"').join(', ')} berdasarkan metode pembayaran yang disebut (gopay/gojek/ovo -> Gopay; bca/rekening/bank/atm/debit -> BCA; cash/tunai -> Cash). Jika tidak disebut, isi null.
+- wallet: pilih persis salah satu dari ${walletNames.map((c) => '"$c"').join(', ')} jika metode pembayaran cocok dengan nama dompet yang tersedia. Jika tidak ada dompet yang cocok, daftar kosong, atau metode tidak disebut, isi null. Jangan mengarang nama dompet.
 - Jika teks bukan catatan transaksi atau tidak ada nominal, isi is_transaction=false dan amount=0.
 
 Contoh:
-Input: "dengan 25000 saya beli gemini dan saya menggunakan bca"
-Output: {"is_transaction": true, "title": "Gemini", "amount": 25000, "category": "Langganan AI", "type": "expense", "wallet": "BCA"}
-Input: "gopay kepotong 18rb buat kopi"
-Output: {"is_transaction": true, "title": "Kopi", "amount": 18000, "category": "Makan & Kopi", "type": "expense", "wallet": "Gopay"}
-Input: "dapat kiriman ortu 1,5jt ke bca"
-Output: {"is_transaction": true, "title": "Kiriman Orang Tua", "amount": 1500000, "category": "Uang Saku", "type": "income", "wallet": "BCA"}
+Input: "dengan 25000 saya beli gemini"
+Output: {"is_transaction": true, "title": "Gemini", "amount": 25000, "category": "Langganan AI", "type": "expense", "wallet": null}
+Input: "kepotong 18rb buat kopi"
+Output: {"is_transaction": true, "title": "Kopi", "amount": 18000, "category": "Makan & Kopi", "type": "expense", "wallet": null}
+Input: "dapat kiriman ortu 1,5jt"
+Output: {"is_transaction": true, "title": "Kiriman Orang Tua", "amount": 1500000, "category": "Uang Saku", "type": "income", "wallet": null}
 ''';
 
     final json = await _callJson(
@@ -310,7 +310,9 @@ Output: {"is_transaction": true, "title": "Kiriman Orang Tua", "amount": 1500000
   }) async {
     final totalBalance = wallets.fold<int>(0, (s, w) => s + w.balance);
     final walletLines = wallets.map((w) => '- ${w.name}: Rp ${w.balance}').join('\n');
-    final defaultWallet = wallets.isNotEmpty ? wallets.first.name : 'Gopay';
+    final defaultWallet = wallets.isNotEmpty
+        ? wallets.first.name
+        : 'belum ada dompet';
 
     final recent = transactions
         .take(10)
@@ -360,7 +362,7 @@ Aturan transaction:
 - amount bilangan bulat rupiah ("25rb"->25000, "1,5jt"->1500000).
 - title singkat & rapi tanpa nominal/nama dompet.
 - category persis salah satu: ${categories.map((c) => '"$c"').join(', ')}.
-- wallet persis salah satu dari ${wallets.map((w) => '"${w.name}"').join(', ')} sesuai metode bayar yang disebut. Jika tidak disebut isi null dan anggap dicatat ke "$defaultWallet" (sebut itu di reply, tanya apakah mau dipindah).
+- wallet persis salah satu dari ${wallets.map((w) => '"${w.name}"').join(', ')} sesuai metode bayar yang disebut. Jika tidak disebut isi null dan jangan mengarang atau memilih dompet yang tidak tersedia ("$defaultWallet").
 - reply: konfirmasi natural bahwa transaksi sudah dicatat (sebut nominal & dompet dengan gaya santai, boleh komentar ringan). Jangan menyebut sisa saldo setelah transaksi.
 ''';
 

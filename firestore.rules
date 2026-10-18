@@ -1,0 +1,65 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isVerifiedOwner(userId) {
+      return request.auth != null
+        && request.auth.uid == userId
+        && request.auth.token.email_verified == true;
+    }
+
+    function validWallet() {
+      return request.resource.data.keys().hasAll(['name', 'balance', 'iconName'])
+        && request.resource.data.name is string
+        && request.resource.data.balance is int
+        && request.resource.data.balance >= 0
+        && request.resource.data.iconName is string;
+    }
+
+    function validTransaction() {
+      return request.resource.data.keys().hasAll([
+          'id', 'title', 'amount', 'date', 'category', 'type', 'walletId', 'walletName'
+        ])
+        && request.resource.data.id is string
+        && request.resource.data.title is string
+        && request.resource.data.amount is int
+        && request.resource.data.amount > 0
+        && request.resource.data.date is timestamp
+        && request.resource.data.category is string
+        && request.resource.data.type in ['income', 'expense']
+        && request.resource.data.walletId is string
+        && request.resource.data.walletName is string;
+    }
+
+    function validTopic() {
+      return request.resource.data.keys().hasAll(['title', 'createdAt', 'updatedAt'])
+        && request.resource.data.title is string
+        && request.resource.data.createdAt is timestamp
+        && request.resource.data.updatedAt is timestamp;
+    }
+
+    match /users/{userId}/wallets/{walletId} {
+      allow read, delete: if isVerifiedOwner(userId);
+      allow create, update: if isVerifiedOwner(userId) && validWallet();
+    }
+
+    match /users/{userId}/transactions/{transactionId} {
+      allow read, delete: if isVerifiedOwner(userId);
+      allow create, update: if isVerifiedOwner(userId) && validTransaction();
+    }
+
+    match /users/{userId}/chatTopics/{topicId} {
+      allow read, delete: if isVerifiedOwner(userId);
+      allow create, update: if isVerifiedOwner(userId) && validTopic();
+
+      match /messages/{messageId} {
+        allow read, delete: if isVerifiedOwner(userId);
+        allow create: if isVerifiedOwner(userId)
+          && request.resource.data.keys().hasAll(['text', 'role', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.role in ['user', 'assistant']
+          && request.resource.data.createdAt is timestamp;
+      }
+    }
+  }
+}

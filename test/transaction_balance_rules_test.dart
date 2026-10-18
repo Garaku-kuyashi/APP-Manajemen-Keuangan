@@ -142,6 +142,7 @@ void main() {
         addWallet: AddWalletUseCase(repository),
         updateWallet: UpdateWalletUseCase(repository),
         deleteWallet: DeleteWalletUseCase(repository),
+        adjustWalletBalance: AdjustWalletBalanceUseCase(repository),
       );
     });
 
@@ -188,5 +189,19 @@ class _InMemoryWalletRepository implements WalletRepository {
   @override
   Future<void> deleteWallet(String id) async {
     wallets.removeWhere((wallet) => wallet.id == id);
+  }
+
+  @override
+  Future<bool> adjustBalance(String walletId, int delta) async {
+    final index = wallets.indexWhere((wallet) => wallet.id == walletId);
+    if (index == -1 || wallets[index].balance + delta < 0) return false;
+    final wallet = wallets[index];
+    wallets[index] = WalletEntity(
+      id: wallet.id,
+      name: wallet.name,
+      balance: wallet.balance + delta,
+      iconName: wallet.iconName,
+    );
+    return true;
   }
 }

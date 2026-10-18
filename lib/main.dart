@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import 'core/di/injection_container.dart';
 import 'core/di/theme/theme_cubit.dart';
 import 'features/login/login_feature.dart';
+import 'features/chat/data/chat_repository.dart';
 import 'firebase_options.dart';
 import 'features/transaction/presentation/cubit/transaction_cubit.dart';
 import 'features/transaction/presentation/pages/transaction_dashboard.dart';
@@ -16,7 +18,7 @@ import 'features/wallet/presentation/cubit/wallet_cubit.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  initDI();
+  initDI(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance);
   final authCubit = AuthCubit(FirebaseAuth.instance);
   runApp(MyMoneyApp(authCubit: authCubit));
 }
@@ -47,6 +49,7 @@ class MyMoneyApp extends StatelessWidget {
 
     return MultiBlocProvider(
       providers: [
+        RepositoryProvider<ChatRepository>(create: (_) => sl<ChatRepository>()),
         BlocProvider<AuthCubit>.value(value: authCubit),
         BlocProvider<TransactionCubit>(create: (_) => sl<TransactionCubit>()),
         BlocProvider<WalletCubit>(create: (_) => sl<WalletCubit>()),

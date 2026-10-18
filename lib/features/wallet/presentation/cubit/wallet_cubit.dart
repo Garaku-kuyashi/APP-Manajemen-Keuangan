@@ -9,12 +9,14 @@ class WalletCubit extends Cubit<WalletState> {
   final AddWalletUseCase addWallet;
   final UpdateWalletUseCase updateWallet;
   final DeleteWalletUseCase deleteWallet;
+  final AdjustWalletBalanceUseCase adjustWalletBalance;
 
   WalletCubit({
     required this.getWallets,
     required this.addWallet,
     required this.updateWallet,
     required this.deleteWallet,
+    required this.adjustWalletBalance,
   }) : super(WalletInitial());
 
   Future<void> loadWallets() async {
@@ -62,20 +64,8 @@ class WalletCubit extends Cubit<WalletState> {
   /// [delta] positif = saldo bertambah, negatif = saldo berkurang.
   Future<bool> adjustBalance(String walletId, int delta) async {
     try {
-      final wallets = await getWallets.execute();
-      final target = wallets.where((w) => w.id == walletId);
-      if (target.isEmpty) return false;
-      final w = target.first;
-      final newBalance = w.balance + delta;
-      if (newBalance < 0) return false;
-      await updateWallet.execute(
-        WalletEntity(
-          id: w.id,
-          name: w.name,
-          balance: newBalance,
-          iconName: w.iconName,
-        ),
-      );
+      final adjusted = await adjustWalletBalance.execute(walletId, delta);
+      if (!adjusted) return false;
       await loadWallets();
       return true;
     } catch (e) {
