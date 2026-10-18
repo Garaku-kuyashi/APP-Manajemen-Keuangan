@@ -63,6 +63,10 @@ class AuthCubit extends Cubit<User?> with WidgetsBindingObserver {
         password: password,
       );
       await credential.user?.reload();
+      final refreshedUser = _firebaseAuth.currentUser;
+      if (refreshedUser?.emailVerified == true) {
+        await refreshedUser!.getIdToken(true);
+      }
       _set(_firebaseAuth.currentUser);
       return null;
     } on FirebaseAuthException catch (error) {
@@ -87,13 +91,21 @@ class AuthCubit extends Cubit<User?> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _validateRemoteAccount() async {
+  Future<void> _validateRemoteAccount({
+    bool refreshVerifiedToken = false,
+  }) async {
     final user = _firebaseAuth.currentUser;
     if (user == null || _checkingRemoteAccount || isClosed) return;
 
     _checkingRemoteAccount = true;
     try {
+      final wasEmailVerified = user.emailVerified;
       await user.reload();
+      final refreshedUser = _firebaseAuth.currentUser;
+      if (refreshedUser?.emailVerified == true &&
+          (!wasEmailVerified || refreshVerifiedToken)) {
+        await refreshedUser!.getIdToken(true);
+      }
       if (!isClosed) _set(_firebaseAuth.currentUser);
     } on FirebaseAuthException catch (error) {
       if (_isInvalidAccountCode(error.code)) {
@@ -126,6 +138,9 @@ class AuthCubit extends Cubit<User?> with WidgetsBindingObserver {
       if (user == null) return 'Sesi berakhir. Silakan masuk kembali.';
       await user.reload();
       final refreshedUser = _firebaseAuth.currentUser;
+      if (refreshedUser?.emailVerified == true) {
+        await refreshedUser!.getIdToken(true);
+      }
       _set(refreshedUser);
       return refreshedUser?.emailVerified == true
           ? null
@@ -170,7 +185,9 @@ class AuthCubit extends Cubit<User?> with WidgetsBindingObserver {
     _set(user);
     if (!_receivedInitialAuthState) {
       _receivedInitialAuthState = true;
-      if (user != null) unawaited(_validateRemoteAccount());
+      if (user != null) {
+        unawaited(_validateRemoteAccount(refreshVerifiedToken: true));
+      }
     }
   }
 
