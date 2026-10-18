@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
+
 import '../../features/transaction/domain/entities/transaction_entity.dart';
 import '../../features/wallet/domain/entities/wallet_entity.dart';
 import 'api_config.dart';
@@ -50,7 +52,9 @@ class GeminiAiService {
   }) async {
     if (_apiKey.isEmpty) {
       // ignore: avoid_print
-      print('GEMINI_API_KEY KOSONG. Jalankan dengan --dart-define-from-file=env.json');
+      print(
+        'GEMINI_API_KEY KOSONG. Jalankan dengan --dart-define-from-file=env.json',
+      );
       return null;
     }
     try {
@@ -64,8 +68,8 @@ class GeminiAiService {
             body: jsonEncode({
               'systemInstruction': {
                 'parts': [
-                  {'text': systemInstruction}
-                ]
+                  {'text': systemInstruction},
+                ],
               },
               'contents': contents,
               'generationConfig': {
@@ -110,8 +114,10 @@ class GeminiAiService {
   // NORMALISASI & PARSER LOKAL (cadangan jika AI gagal / kalimat acak)
   // ---------------------------------------------------------------------------
 
-  static final RegExp _amountRe =
-      RegExp(r'(\d+(?:[.,]\d+)*)\s*(rb|ribu|k|jt|juta)?(?![a-z0-9])', caseSensitive: false);
+  static final RegExp _amountRe = RegExp(
+    r'(\d+(?:[.,]\d+)*)\s*(rb|ribu|k|jt|juta)?(?![a-z0-9])',
+    caseSensitive: false,
+  );
 
   /// Baca nominal dari teks: 25000, 25.000, 25rb, 25k, 1,5jt, 2 juta.
   /// Mengambil kandidat terbesar (>= 100) supaya "2 kopi 30rb" -> 30000.
@@ -122,7 +128,9 @@ class GeminiAiService {
       final suffix = (m.group(2) ?? '').toLowerCase();
       double value;
       if (suffix.isEmpty) {
-        value = double.tryParse(numStr.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+        value =
+            double.tryParse(numStr.replaceAll('.', '').replaceAll(',', '')) ??
+            0;
       } else {
         value = double.tryParse(numStr.replaceAll(',', '.')) ?? 0;
         if (suffix == 'rb' || suffix == 'ribu' || suffix == 'k') value *= 1000;
@@ -154,16 +162,24 @@ class GeminiAiService {
     return 'Lainnya';
   }
 
-  static Map<String, dynamic>? _normalize(Map<String, dynamic> raw, String originalText) {
+  static Map<String, dynamic>? _normalize(
+    Map<String, dynamic> raw,
+    String originalText,
+  ) {
     final amount = _toAmount(raw['amount'], originalText);
     if (amount == null || amount <= 0) return null;
 
     String title = (raw['title'] ?? '').toString().trim();
     if (title.isEmpty) title = _localTitle(originalText);
 
-    final type = (raw['type'] ?? '').toString().toLowerCase() == 'income' ? 'income' : 'expense';
+    final type = (raw['type'] ?? '').toString().toLowerCase() == 'income'
+        ? 'income'
+        : 'expense';
     final walletRaw = raw['wallet'];
-    final wallet = (walletRaw is String && walletRaw.trim().isNotEmpty && walletRaw.toLowerCase() != 'null')
+    final wallet =
+        (walletRaw is String &&
+            walletRaw.trim().isNotEmpty &&
+            walletRaw.toLowerCase() != 'null')
         ? walletRaw.trim()
         : null;
 
@@ -177,29 +193,96 @@ class GeminiAiService {
   }
 
   static const List<String> _incomeWords = [
-    'gaji', 'gajian', 'uang saku', 'kiriman', 'dikirim', 'dapat', 'dapet', 'terima', 'nerima',
-    'bonus', 'honor', 'cashback', 'pemasukan', 'masuk',
+    'gaji',
+    'gajian',
+    'uang saku',
+    'kiriman',
+    'dikirim',
+    'dapat',
+    'dapet',
+    'terima',
+    'nerima',
+    'bonus',
+    'honor',
+    'cashback',
+    'pemasukan',
+    'masuk',
   ];
   static const List<String> _spendWords = [
-    'beli', 'bayar', 'jajan', 'makan', 'minum', 'isi', 'topup', 'top up', 'langganan', 'abis',
-    'habis', 'keluar', 'traktir', 'pengeluaran', 'sewa', 'ongkos', 'parkir', 'bensin',
+    'beli',
+    'bayar',
+    'jajan',
+    'makan',
+    'minum',
+    'isi',
+    'topup',
+    'top up',
+    'langganan',
+    'abis',
+    'habis',
+    'keluar',
+    'traktir',
+    'pengeluaran',
+    'sewa',
+    'ongkos',
+    'parkir',
+    'bensin',
   ];
 
   static String _localCategory(String lower) {
     bool has(List<String> w) => w.any(lower.contains);
     if (has(['gaji', 'uang saku', 'kiriman'])) return 'Uang Saku';
-    if (has(['gemini', 'chatgpt', 'claude', 'copilot', 'midjourney', 'perplexity', 'cursor']) ||
+    if (has([
+          'gemini',
+          'chatgpt',
+          'claude',
+          'copilot',
+          'midjourney',
+          'perplexity',
+          'cursor',
+        ]) ||
         RegExp(r'\bai\b').hasMatch(lower)) {
       return 'Langganan AI';
     }
-    if (has(['netflix', 'spotify', 'youtube', 'disney', 'vidio', 'bioskop', 'game', 'steam'])) {
+    if (has([
+      'netflix',
+      'spotify',
+      'youtube',
+      'disney',
+      'vidio',
+      'bioskop',
+      'game',
+      'steam',
+    ])) {
       return 'Hiburan & Streaming';
     }
-    if (has(['kuota', 'pulsa', 'internet', 'wifi', 'paket data'])) return 'Kuota & Internet';
-    if (has(['print', 'fotokopi', 'buku', 'kuliah', 'tugas', 'ukt', 'alat tulis', 'skripsi'])) {
+    if (has(['kuota', 'pulsa', 'internet', 'wifi', 'paket data']))
+      return 'Kuota & Internet';
+    if (has([
+      'print',
+      'fotokopi',
+      'buku',
+      'kuliah',
+      'tugas',
+      'ukt',
+      'alat tulis',
+      'skripsi',
+    ])) {
       return 'Kebutuhan Kuliah';
     }
-    if (has(['makan', 'kopi', 'jajan', 'minum', 'nasi', 'ayam', 'bakso', 'mie', 'boba', 'snack', 'sarapan'])) {
+    if (has([
+      'makan',
+      'kopi',
+      'jajan',
+      'minum',
+      'nasi',
+      'ayam',
+      'bakso',
+      'mie',
+      'boba',
+      'snack',
+      'sarapan',
+    ])) {
       return 'Makan & Kopi';
     }
     return 'Lainnya';
@@ -209,9 +292,37 @@ class GeminiAiService {
     var t = text.toLowerCase();
     t = t.replaceAll(_amountRe, ' ');
     const filler = [
-      'dengan', 'menggunakan', 'pakai', 'pake', 'via', 'lewat', 'dari', 'saya', 'aku', 'harga',
-      'seharga', 'sebesar', 'rp', 'rupiah', 'untuk', 'dan', 'yang', 'di', 'ke', 'beli', 'bayar',
-      'tadi', 'barusan', 'catat', 'tolong', 'gopay', 'ovo', 'dana', 'bca', 'cash', 'tunai',
+      'dengan',
+      'menggunakan',
+      'pakai',
+      'pake',
+      'via',
+      'lewat',
+      'dari',
+      'saya',
+      'aku',
+      'harga',
+      'seharga',
+      'sebesar',
+      'rp',
+      'rupiah',
+      'untuk',
+      'dan',
+      'yang',
+      'di',
+      'ke',
+      'beli',
+      'bayar',
+      'tadi',
+      'barusan',
+      'catat',
+      'tolong',
+      'gopay',
+      'ovo',
+      'dana',
+      'bca',
+      'cash',
+      'tunai',
     ];
     final words = t
         .split(RegExp(r'[^a-z0-9&]+'))
@@ -233,7 +344,8 @@ class GeminiAiService {
     final amount = _amountFromText(text);
     if (amount == null) return null;
     final lower = text.toLowerCase();
-    final isIncome = _incomeWords.any(lower.contains) && !_spendWords.any(lower.contains);
+    final isIncome =
+        _incomeWords.any(lower.contains) && !_spendWords.any(lower.contains);
     return {
       'title': _localTitle(text),
       'amount': amount,
@@ -252,7 +364,8 @@ class GeminiAiService {
     List<String> walletNames = const [],
   }) async {
     final today = DateTime.now().toString().substring(0, 10);
-    final system = '''
+    final system =
+        '''
 Kamu adalah mesin ekstraksi transaksi keuangan untuk aplikasi MyMoney (mahasiswa Indonesia).
 Pengguna menulis bebas: urutan kata bisa acak, ada typo, singkatan, bahasa gaul. Pahami maksudnya, jangan kaku pada template.
 Tanggal hari ini: $today.
@@ -283,9 +396,9 @@ Output: {"is_transaction": true, "title": "Kiriman Orang Tua", "amount": 1500000
         {
           'role': 'user',
           'parts': [
-            {'text': userPrompt}
-          ]
-        }
+            {'text': userPrompt},
+          ],
+        },
       ],
       temperature: 0.1,
     );
@@ -309,15 +422,19 @@ Output: {"is_transaction": true, "title": "Kiriman Orang Tua", "amount": 1500000
     required List<TransactionEntity> transactions,
   }) async {
     final totalBalance = wallets.fold<int>(0, (s, w) => s + w.balance);
-    final walletLines = wallets.map((w) => '- ${w.name}: Rp ${w.balance}').join('\n');
+    final walletLines = wallets
+        .map((w) => '- ${w.name}: Rp ${w.balance}')
+        .join('\n');
     final defaultWallet = wallets.isNotEmpty
         ? wallets.first.name
         : 'belum ada dompet';
 
     final recent = transactions
         .take(10)
-        .map((t) =>
-            '- ${t.date.toString().substring(0, 10)} | ${t.title} (${t.category}) | ${t.type == TransactionType.income ? '+' : '-'}Rp ${t.amount} | ${t.walletName}')
+        .map(
+          (t) =>
+              '- ${t.date.toString().substring(0, 10)} | ${t.title} (${t.category}) | ${t.type == TransactionType.income ? '+' : '-'}Rp ${t.amount} | ${t.walletName}',
+        )
         .join('\n');
 
     final spendByCat = <String, int>{};
@@ -326,9 +443,12 @@ Output: {"is_transaction": true, "title": "Kiriman Orang Tua", "amount": 1500000
         spendByCat[t.category] = (spendByCat[t.category] ?? 0) + t.amount;
       }
     }
-    final catLines = spendByCat.entries.map((e) => '- ${e.key}: Rp ${e.value}').join('\n');
+    final catLines = spendByCat.entries
+        .map((e) => '- ${e.key}: Rp ${e.value}')
+        .join('\n');
 
-    final system = '''
+    final system =
+        '''
 Kamu adalah "MyMoney AI", teman ngobrol sekaligus pendamping keuangan untuk mahasiswa Indonesia.
 
 KEPRIBADIAN
@@ -367,22 +487,24 @@ Aturan transaction:
 ''';
 
     // Riwayat obrolan (maks 10 terakhir). Gemini mewajibkan giliran pertama = user.
-    final turns = history.length > 10 ? history.sublist(history.length - 10) : history;
+    final turns = history.length > 10
+        ? history.sublist(history.length - 10)
+        : history;
     final contents = <Map<String, dynamic>>[];
     for (final t in turns) {
       if (contents.isEmpty && !t.isUser) continue;
       contents.add({
         'role': t.isUser ? 'user' : 'model',
         'parts': [
-          {'text': t.text}
-        ]
+          {'text': t.text},
+        ],
       });
     }
     contents.add({
       'role': 'user',
       'parts': [
-        {'text': userMessage}
-      ]
+        {'text': userMessage},
+      ],
     });
 
     final json = await _callJson(
@@ -417,9 +539,110 @@ Aturan transaction:
     return 'Maaf, aku lagi susah nyambung ke server AI. Coba kirim lagi sebentar lagi ya. Sementara itu, saldo kamu Rp $balance.';
   }
 
-  /// Financial Advisor Laporan
-  static Future<String> generateFinancialAdvice(List<TransactionEntity> transactions) async {
-    if (transactions.isEmpty) return 'Belum ada data transaksi.';
-    return '🤖 **AI Insight:** Pola pengeluaran kamu masih dalam rentang aman. Pertahankan hingga akhir bulan!';
+  /// Generates advice using the survival prediction and recent transaction pattern.
+  static Future<String> generateFinancialAdvice(
+    List<TransactionEntity> transactions, {
+    required int currentBalance,
+    required int dailySafeBudget,
+    required int estimatedSurvivalDays,
+    required int remainingDays,
+    required bool isCritical,
+  }) async {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final recentStart = today.subtract(const Duration(days: 13));
+    final previousStart = today.subtract(const Duration(days: 27));
+    final recentExpenses = transactions.where(
+      (transaction) =>
+          transaction.type == TransactionType.expense &&
+          !transaction.date.isBefore(recentStart) &&
+          !transaction.date.isAfter(now),
+    );
+    final previousExpenses = transactions.where(
+      (transaction) =>
+          transaction.type == TransactionType.expense &&
+          !transaction.date.isBefore(previousStart) &&
+          transaction.date.isBefore(recentStart),
+    );
+    final recentCategoryTotals = <String, int>{};
+    var recentExpenseTotal = 0;
+    var recentExpenseCount = 0;
+    for (final transaction in recentExpenses) {
+      recentExpenseTotal += transaction.amount;
+      recentExpenseCount++;
+      recentCategoryTotals.update(
+        transaction.category,
+        (total) => total + transaction.amount,
+        ifAbsent: () => transaction.amount,
+      );
+    }
+    final previousExpenseTotal = previousExpenses.fold<int>(
+      0,
+      (total, transaction) => total + transaction.amount,
+    );
+    final topCategory = recentCategoryTotals.entries.isEmpty
+        ? null
+        : recentCategoryTotals.entries.reduce(
+            (a, b) => a.value >= b.value ? a : b,
+          );
+    final recentDailyAverage = (recentExpenseTotal / 14).round();
+    final previousDailyAverage = (previousExpenseTotal / 14).round();
+    final spendingTrend = previousDailyAverage == 0
+        ? 'Belum cukup data pada 14 hari sebelumnya untuk membandingkan tren.'
+        : recentDailyAverage > previousDailyAverage
+        ? 'Rata-rata pengeluaran 14 hari terakhir naik ${((recentDailyAverage - previousDailyAverage) / previousDailyAverage * 100).round()}% dibanding 14 hari sebelumnya.'
+        : recentDailyAverage < previousDailyAverage
+        ? 'Rata-rata pengeluaran 14 hari terakhir turun ${((previousDailyAverage - recentDailyAverage) / previousDailyAverage * 100).round()}% dibanding 14 hari sebelumnya.'
+        : 'Rata-rata pengeluaran 14 hari terakhir stabil dibanding 14 hari sebelumnya.';
+    final behaviorSummary = recentExpenseCount == 0
+        ? 'Belum ada pengeluaran tercatat dalam 14 hari terakhir.'
+        : '$recentExpenseCount transaksi pengeluaran dalam 14 hari terakhir, total Rp $recentExpenseTotal (rata-rata Rp $recentDailyAverage per hari). '
+              '${topCategory == null ? '' : 'Kategori terbesar: ${topCategory.key} (Rp ${topCategory.value}).'} '
+              '$spendingTrend';
+
+    final status = isCritical
+        ? 'KRITIS: saldo diproyeksikan bertahan $estimatedSurvivalDays hari, kurang dari $remainingDays hari tersisa di bulan ini.'
+        : 'TERKENDALI: saldo diproyeksikan bertahan $estimatedSurvivalDays hari untuk $remainingDays hari tersisa di bulan ini.';
+    final context =
+        '''
+Status survival mode: $status
+Saldo saat ini: Rp $currentBalance
+Batas aman belanja harian: Rp $dailySafeBudget
+Perilaku transaksi terbaru: $behaviorSummary
+''';
+    final result = await _callJson(
+      systemInstruction: '''
+Kamu adalah Gemini Financial Advisor untuk aplikasi keuangan mahasiswa Indonesia.
+Berikan satu saran singkat dan spesifik dalam bahasa Indonesia yang hangat, praktis, dan tidak menghakimi.
+Sesuaikan urgensi dengan status survival mode. Jika KRITIS, jelaskan prioritas tindakan segera, sarankan menahan pengeluaran non-esensial, gunakan batas harian yang tersedia, dan arahkan saran ke pola/kategori belanja nyata bila ada. Jika TERKENDALI, beri penguatan sekaligus satu cara menjaga kebiasaan baik berdasarkan pola transaksi.
+Gunakan hanya data yang diberikan. Jangan mengarang transaksi, tanggal pemasukan, atau komitmen tagihan. Jangan menjanjikan saldo akan cukup. Hindari nasihat investasi atau pinjaman.
+Keluarkan JSON saja dengan format {"advice": "satu atau dua kalimat saran"}.
+''',
+      contents: [
+        {
+          'role': 'user',
+          'parts': [
+            {'text': context},
+          ],
+        },
+      ],
+      temperature: 0.4,
+    );
+    final advice = result?['advice'];
+    if (advice is String && advice.trim().isNotEmpty) return advice.trim();
+
+    if (isCritical) {
+      final categoryAdvice = topCategory == null
+          ? 'Belum ada kategori pengeluaran terbaru yang cukup jelas untuk diprioritaskan.'
+          : 'Kategori ${topCategory.key} menjadi pengeluaran terbesar belakangan ini (Rp ${topCategory.value}), jadi cek dulu apakah ada bagian yang bisa ditunda.';
+      return '⚠️ Saldo diproyeksikan bertahan $estimatedSurvivalDays hari, sementara masih ada $remainingDays hari di bulan ini. Usahakan pengeluaran harian tidak melebihi Rp $dailySafeBudget dan tahan dulu belanja non-esensial. $categoryAdvice $spendingTrend';
+    }
+
+    final trendAdvice = recentExpenseCount == 0
+        ? 'Catat pengeluaran berikutnya agar perkiraan tetap relevan.'
+        : topCategory == null
+        ? 'Terus pantau transaksi harian agar pola belanja tetap terlihat.'
+        : 'Pantau kategori ${topCategory.key}, yang paling besar dalam 14 hari terakhir (Rp ${topCategory.value}).';
+    return '✅ Proyeksi saat ini terkendali untuk $remainingDays hari tersisa. Pertahankan pengeluaran di sekitar batas Rp $dailySafeBudget per hari. $trendAdvice $spendingTrend';
   }
 }

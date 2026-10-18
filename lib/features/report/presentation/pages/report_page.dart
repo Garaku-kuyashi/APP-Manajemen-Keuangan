@@ -14,9 +14,7 @@ class ReportPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Laporan & Survival Mode'),
-      ),
+      appBar: AppBar(title: const Text('Laporan & Survival Mode')),
       body: BlocBuilder<TransactionCubit, TransactionState>(
         builder: (context, txState) {
           if (txState is DataLoading) {
@@ -77,8 +75,9 @@ class ReportPage extends StatelessWidget {
                 final dailySafeBudget = remainingDays > 0
                     ? (totalWalletBalance / remainingDays).round()
                     : 0;
-                final averageDailyExpense =
-                    totalExpense > 0 ? (totalExpense / 15).round() : 0;
+                final averageDailyExpense = totalExpense > 0
+                    ? (totalExpense / 15).round()
+                    : 0;
                 final estimatedSurvivalDays = averageDailyExpense > 0
                     ? (totalWalletBalance / averageDailyExpense).round()
                     : 99;
@@ -97,7 +96,9 @@ class ReportPage extends StatelessWidget {
                             : Colors.teal.shade900.withOpacity(0.3),
                         shape: RoundedRectangleBorder(
                           side: BorderSide(
-                            color: isCritical ? Colors.redAccent : Colors.tealAccent,
+                            color: isCritical
+                                ? Colors.redAccent
+                                : Colors.tealAccent,
                             width: 1.5,
                           ),
                           borderRadius: BorderRadius.circular(12),
@@ -113,7 +114,9 @@ class ReportPage extends StatelessWidget {
                                     isCritical
                                         ? Icons.warning_amber_rounded
                                         : Icons.shield_outlined,
-                                    color: isCritical ? Colors.redAccent : Colors.tealAccent,
+                                    color: isCritical
+                                        ? Colors.redAccent
+                                        : Colors.tealAccent,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -122,7 +125,9 @@ class ReportPage extends StatelessWidget {
                                         : 'PREDIKSI SURVIVAL MODE',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
-                                      color: isCritical ? Colors.redAccent : Colors.tealAccent,
+                                      color: isCritical
+                                          ? Colors.redAccent
+                                          : Colors.tealAccent,
                                       fontSize: 13,
                                     ),
                                   ),
@@ -130,14 +135,19 @@ class ReportPage extends StatelessWidget {
                               ),
                               const Divider(height: 20),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
                                 children: [
                                   Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       const Text(
                                         'Batas Jajan Hari Ini',
-                                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -155,7 +165,10 @@ class ReportPage extends StatelessWidget {
                                     children: [
                                       const Text(
                                         'Estimasi Bertahan',
-                                        style: TextStyle(fontSize: 12, color: Colors.grey),
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey,
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
@@ -177,7 +190,10 @@ class ReportPage extends StatelessWidget {
                                 isCritical
                                     ? '⚠️ Uang saku Anda berisiko habis sebelum akhir bulan! Batasi pengeluaran maksimal Rp $dailySafeBudget per hari.'
                                     : '✅ Keuangan Anda terkendali. Sisa hari bulan ini adalah $remainingDays hari lagi.',
-                                style: const TextStyle(fontSize: 12, color: Colors.white70),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.white70,
+                                ),
                               ),
                             ],
                           ),
@@ -188,17 +204,27 @@ class ReportPage extends StatelessWidget {
 
                       // === CARD 2: GEMINI AI ADVISOR (REALTIME) ===
                       FutureBuilder<String>(
-                        future: GeminiAiService.generateFinancialAdvice(transactions),
+                        future: GeminiAiService.generateFinancialAdvice(
+                          transactions,
+                          currentBalance: totalWalletBalance,
+                          dailySafeBudget: dailySafeBudget,
+                          estimatedSurvivalDays: estimatedSurvivalDays,
+                          remainingDays: remainingDays,
+                          isCritical: isCritical,
+                        ),
                         builder: (context, snapshot) {
                           final insightText =
-                              snapshot.connectionState == ConnectionState.waiting
-                                  ? "🤖 Gemini AI sedang menganalisis pola keuanganmu..."
-                                  : (snapshot.data ?? "Tidak ada saran.");
+                              snapshot.connectionState ==
+                                  ConnectionState.waiting
+                              ? "🤖 Gemini AI sedang menganalisis pola keuanganmu..."
+                              : (snapshot.data ?? "Tidak ada saran.");
 
                           return Card(
                             color: Colors.indigo.shade900.withOpacity(0.4),
                             shape: RoundedRectangleBorder(
-                              side: const BorderSide(color: Colors.indigoAccent),
+                              side: const BorderSide(
+                                color: Colors.indigoAccent,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Padding(
@@ -208,12 +234,16 @@ class ReportPage extends StatelessWidget {
                                 children: [
                                   const CircleAvatar(
                                     backgroundColor: Colors.indigoAccent,
-                                    child: Icon(Icons.psychology, color: Colors.white),
+                                    child: Icon(
+                                      Icons.psychology,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                   const SizedBox(width: 12),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const Text(
                                           'Gemini Financial Advisor',
@@ -251,7 +281,10 @@ class ReportPage extends StatelessWidget {
                             children: [
                               const CircleAvatar(
                                 backgroundColor: Colors.purple,
-                                child: Icon(Icons.subscriptions_outlined, color: Colors.white),
+                                child: Icon(
+                                  Icons.subscriptions_outlined,
+                                  color: Colors.white,
+                                ),
                               ),
                               const SizedBox(width: 16),
                               Expanded(
@@ -277,7 +310,10 @@ class ReportPage extends StatelessWidget {
                                     const SizedBox(height: 2),
                                     const Text(
                                       '(AI, Streaming, Kuota & Internet)',
-                                      style: TextStyle(fontSize: 11, color: Colors.grey),
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        color: Colors.grey,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -290,7 +326,10 @@ class ReportPage extends StatelessWidget {
                       const SizedBox(height: 16),
                       const Text(
                         'Breakdown Per Kategori',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
                       ),
                       const SizedBox(height: 8),
 
@@ -302,17 +341,22 @@ class ReportPage extends StatelessWidget {
                         )
                       else
                         ...categoryExpenses.entries.map((entry) {
-                          final categoryPercentage =
-                              totalExpense > 0 ? (entry.value / totalExpense * 100) : 0.0;
+                          final categoryPercentage = totalExpense > 0
+                              ? (entry.value / totalExpense * 100)
+                              : 0.0;
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
                               leading: CircleAvatar(
-                                child: Text('${categoryPercentage.toStringAsFixed(0)}%'),
+                                child: Text(
+                                  '${categoryPercentage.toStringAsFixed(0)}%',
+                                ),
                               ),
                               title: Text(
                                 entry.key,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               subtitle: Text('Total: Rp ${entry.value}'),
                             ),
