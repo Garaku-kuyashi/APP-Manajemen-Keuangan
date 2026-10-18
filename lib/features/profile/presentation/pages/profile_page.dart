@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../login/login_feature.dart';
 import '../../../../core/ui/app_icons.dart';
 import 'settings_page.dart';
@@ -19,6 +20,22 @@ class _ProfilePageState extends State<ProfilePage> {
   String _userName = "M. Fahrianor";
   String _userNim = "2409106089";
   int _userBudget = 1500000;
+  bool _loggingOut = false;
+
+  Future<void> _logout() async {
+    if (_loggingOut) return;
+    setState(() => _loggingOut = true);
+
+    final error = await context.read<AuthCubit>().logout();
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() => _loggingOut = false);
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
 
   void _showEditProfileDialog() {
     final nameCtrl = TextEditingController(text: _userName);
@@ -88,7 +105,11 @@ class _ProfilePageState extends State<ProfilePage> {
               if (newBudget != null) {
                 setState(() => _userBudget = newBudget);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Batas anggaran berhasil diubah ke Rp $_userBudget')),
+                  SnackBar(
+                    content: Text(
+                      'Batas anggaran berhasil diubah ke Rp $_userBudget',
+                    ),
+                  ),
                 );
               }
               Navigator.pop(ctx);
@@ -104,10 +125,13 @@ class _ProfilePageState extends State<ProfilePage> {
     final state = context.read<TransactionCubit>().state;
 
     if (state is DataSuccess) {
-      final String csvData = "Tanggal,Judul,Kategori,Nominal,Tipe,Dompet\n" +
-          state.transactions.map((tx) {
-            return "${tx.date.toString().substring(0, 10)},\"${tx.title}\",${tx.category},${tx.amount},${tx.type.name},${tx.walletName}";
-          }).join("\n");
+      final String csvData =
+          "Tanggal,Judul,Kategori,Nominal,Tipe,Dompet\n" +
+          state.transactions
+              .map((tx) {
+                return "${tx.date.toString().substring(0, 10)},\"${tx.title}\",${tx.category},${tx.amount},${tx.type.name},${tx.walletName}";
+              })
+              .join("\n");
 
       showDialog(
         context: context,
@@ -159,8 +183,14 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           IconButton(
             tooltip: 'Keluar',
-            icon: const Icon(Icons.logout),
-            onPressed: () => context.read<AuthCubit>().logout(),
+            icon: _loggingOut
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.logout),
+            onPressed: _loggingOut ? null : _logout,
           ),
         ],
       ),
@@ -184,14 +214,30 @@ class _ProfilePageState extends State<ProfilePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(_userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+                          Text(
+                            _userName,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                          ),
                           const SizedBox(height: 2),
-                          Text('NIM: $_userNim', style: const TextStyle(color: Colors.grey, fontSize: 13)),
+                          Text(
+                            'NIM: $_userNim',
+                            style: const TextStyle(
+                              color: Colors.grey,
+                              fontSize: 13,
+                            ),
+                          ),
                           const SizedBox(height: 6),
                           Chip(
-                            label: const Text('Mahasiswa Hemat 🛡️', style: TextStyle(fontSize: 10)),
+                            label: const Text(
+                              'Mahasiswa Hemat 🛡️',
+                              style: TextStyle(fontSize: 10),
+                            ),
                             padding: EdgeInsets.zero,
-                            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            materialTapTargetSize:
+                                MaterialTapTargetSize.shrinkWrap,
                           ),
                         ],
                       ),
@@ -218,11 +264,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           BlocBuilder<TransactionCubit, TransactionState>(
                             builder: (context, state) {
-                              final count = state is DataSuccess ? state.transactions.length : 0;
-                              return Text('$count', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold));
+                              final count = state is DataSuccess
+                                  ? state.transactions.length
+                                  : 0;
+                              return Text(
+                                '$count',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
                             },
                           ),
-                          const Text('Transaksi', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          const Text(
+                            'Transaksi',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
                         ],
                       ),
                     ),
@@ -236,11 +293,22 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           BlocBuilder<WalletCubit, WalletState>(
                             builder: (context, state) {
-                              final count = state is WalletSuccess ? state.wallets.length : 0;
-                              return Text('$count', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold));
+                              final count = state is WalletSuccess
+                                  ? state.wallets.length
+                                  : 0;
+                              return Text(
+                                '$count',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              );
                             },
                           ),
-                          const Text('Dompet Kas', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          const Text(
+                            'Dompet Kas',
+                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                          ),
                         ],
                       ),
                     ),
@@ -250,14 +318,20 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             const SizedBox(height: 20),
-            const Text('Manajemen Keuangan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            const Text(
+              'Manajemen Keuangan',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
             const SizedBox(height: 8),
 
             Card(
               child: Column(
                 children: [
                   ListTile(
-                    leading: const Icon(Icons.track_changes, color: Colors.orangeAccent),
+                    leading: const Icon(
+                      Icons.track_changes,
+                      color: Colors.orangeAccent,
+                    ),
                     title: const Text('Atur Batas Anggaran Bulanan'),
                     subtitle: Text('Target: Rp $_userBudget / bulan'),
                     trailing: const Icon(Icons.chevron_right),
@@ -265,7 +339,10 @@ class _ProfilePageState extends State<ProfilePage> {
                   ),
                   const Divider(height: 1),
                   ListTile(
-                    leading: const Icon(Icons.download_outlined, color: Colors.greenAccent),
+                    leading: const Icon(
+                      Icons.download_outlined,
+                      color: Colors.greenAccent,
+                    ),
                     title: const Text('Ekspor Laporan Transaksi'),
                     subtitle: const Text('Salin format CSV untuk LPJ'),
                     trailing: const Icon(Icons.chevron_right),
@@ -274,7 +351,6 @@ class _ProfilePageState extends State<ProfilePage> {
                 ],
               ),
             ),
-
           ],
         ),
       ),

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/di/injection_container.dart';
 import 'core/di/theme/theme_cubit.dart';
 import 'features/login/login_feature.dart';
+import 'firebase_options.dart';
 import 'features/transaction/presentation/cubit/transaction_cubit.dart';
 import 'features/transaction/presentation/pages/transaction_dashboard.dart';
 import 'features/transaction/presentation/pages/transaction_form_page.dart';
@@ -13,8 +15,9 @@ import 'features/wallet/presentation/cubit/wallet_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   initDI();
-  final authCubit = AuthCubit(await SharedPreferences.getInstance());
+  final authCubit = AuthCubit(FirebaseAuth.instance);
   runApp(MyMoneyApp(authCubit: authCubit));
 }
 
