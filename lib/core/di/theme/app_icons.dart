@@ -26,9 +26,4 @@ class AppIcons {
   // Tipe transaksi: pemasukan = panah turun (uang masuk), pengeluaran = panah naik (uang keluar)
   static const income = Icons.arrow_downward;
   static const expense = Icons.arrow_upward;
-
-  // Warna aksen
-  static const Color aiColor = Colors.purpleAccent;
-  static const Color incomeColor = Colors.green;
-  static const Color expenseColor = Colors.red;
 }
