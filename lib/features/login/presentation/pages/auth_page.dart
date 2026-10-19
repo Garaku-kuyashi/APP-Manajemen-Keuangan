@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mymoney/core/di/theme/app_colors.dart';
 
 import '../cubit/auth_cubit.dart';
 
@@ -91,11 +92,13 @@ class _AuthPageState extends State<AuthPage> {
     IconData icon, {
     required ThemeData theme,
     String? Function(String?)? validator,
+    required Color inputBackground,
     bool secret = false,
     bool last = false,
     Iterable<String>? hints,
     TextInputType? keyboardType,
     TextCapitalization capitalization = TextCapitalization.none,
+    required Color borderColor,
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
@@ -144,18 +147,18 @@ class _AuthPageState extends State<AuthPage> {
                 )
               : null,
           filled: true,
-          fillColor: theme.colorScheme.surfaceContainerHighest,
+          fillColor: inputBackground,
           contentPadding: const EdgeInsets.symmetric(
             horizontal: 20,
             vertical: 20,
           ),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: borderColor),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide.none,
+            borderSide: BorderSide(color: borderColor),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(20),
@@ -182,7 +185,30 @@ class _AuthPageState extends State<AuthPage> {
     final theme = Theme.of(context);
     final reg = widget.register;
 
+    final isDark = theme.brightness == Brightness.dark;
+
+    final pageBackground = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+
+    final logoBackground = isDark
+        ? AppColors.darkLogoBackground
+        : AppColors.lightLogoBackground;
+
+    final inputBackground = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+
+    final textColor = isDark ? AppColors.textPrimary : AppColors.primaryText;
+
+    final secondaryTextColor = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     return Scaffold(
+      backgroundColor: pageBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -202,14 +228,14 @@ class _AuthPageState extends State<AuthPage> {
                           width: 78,
                           height: 78,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.secondaryContainer,
+                            color: logoBackground,
                             shape: BoxShape.circle,
                           ),
                           alignment: Alignment.center,
                           child: Icon(
                             Icons.account_balance_wallet_outlined,
                             size: 38,
-                            color: theme.colorScheme.primary,
+                            color: AppColors.accentBlue,
                           ),
                         ),
                       ),
@@ -221,6 +247,7 @@ class _AuthPageState extends State<AuthPage> {
                         reg ? 'Buat akun MyMoney' : 'Sign In',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.headlineSmall?.copyWith(
+                          color: textColor,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -234,7 +261,7 @@ class _AuthPageState extends State<AuthPage> {
                             : 'Silakan masukkan email dan kata sandi',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                          color: secondaryTextColor,
                         ),
                       ),
 
@@ -262,6 +289,8 @@ class _AuthPageState extends State<AuthPage> {
 
                             return null;
                           },
+                          inputBackground: inputBackground,
+                          borderColor: borderColor
                         ),
 
                       // Email.
@@ -285,6 +314,8 @@ class _AuthPageState extends State<AuthPage> {
 
                           return null;
                         },
+                        inputBackground: inputBackground,
+                        borderColor: borderColor
                       ),
 
                       // Kata sandi.
@@ -313,6 +344,8 @@ class _AuthPageState extends State<AuthPage> {
 
                           return null;
                         },
+                        inputBackground: inputBackground,
+                        borderColor: borderColor
                       ),
 
                       // Konfirmasi kata sandi saat registrasi.
@@ -336,6 +369,8 @@ class _AuthPageState extends State<AuthPage> {
 
                             return null;
                           },
+                          inputBackground: inputBackground,
+                          borderColor: borderColor
                         ),
 
                       const SizedBox(height: 8),
@@ -346,6 +381,9 @@ class _AuthPageState extends State<AuthPage> {
                         child: FilledButton(
                           onPressed: _loading ? null : _submit,
                           style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.accentBlue,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.accentBlue,
                             minimumSize: const Size.fromHeight(48),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20),
@@ -374,7 +412,7 @@ class _AuthPageState extends State<AuthPage> {
                               reg ? 'Sudah punya akun?' : 'Belum punya akun?',
                               style: theme.textTheme.bodySmall?.copyWith(
                                 fontSize: 14,
-                                color: theme.colorScheme.onSurfaceVariant,
+                                color: secondaryTextColor,
                               ),
                             ),
                           ),
@@ -388,6 +426,7 @@ class _AuthPageState extends State<AuthPage> {
                               style: const TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: 16,
+                                color: AppColors.accentBlue,
                               ),
                             ),
                           ),

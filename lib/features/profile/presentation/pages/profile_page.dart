@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 
-import '../../../../core/ui/app_icons.dart';
+import '../../../../core/di/theme/app_colors.dart';
+import '../../../../core/di/theme/app_icons.dart';
 import 'settings_page.dart';
 import '../../../transaction/presentation/cubit/transaction_cubit.dart';
 import '../../../transaction/presentation/cubit/transaction_state.dart';
@@ -63,40 +64,81 @@ class _ProfilePageState extends State<ProfilePage> {
 
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Atur Batas Anggaran Bulanan'),
-        content: TextField(
-          controller: budgetCtrl,
-          keyboardType: TextInputType.number,
-          decoration: const InputDecoration(
-            labelText: 'Batas Budget (Rp)',
-            hintText: 'Misal: 2000000',
+      builder: (ctx) {
+        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+        return AlertDialog(
+          backgroundColor: isDark
+              ? AppColors.surface
+              : AppColors.lightBackgroundCard,
+          title: Text(
+            'Atur Batas Anggaran Bulanan',
+            style: TextStyle(
+              color: isDark ? AppColors.textPrimary : AppColors.primaryText,
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
+          content: TextField(
+            controller: budgetCtrl,
+            keyboardType: TextInputType.number,
+            style: TextStyle(
+              color: isDark ? AppColors.textPrimary : AppColors.primaryText,
+            ),
+            decoration: InputDecoration(
+              labelText: 'Batas Budget (Rp)',
+              hintText: 'Misal: 2000000',
+              filled: true,
+              fillColor: isDark
+                  ? AppColors.background
+                  : AppColors.lightInputBackground,
+              labelStyle: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondary
+                    : AppColors.secondaryText,
+              ),
+              hintStyle: TextStyle(
+                color: isDark
+                    ? AppColors.textSecondary
+                    : AppColors.secondaryText,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+            ),
           ),
-          FilledButton(
-            onPressed: () {
-              final newBudget = int.tryParse(budgetCtrl.text.trim());
-              if (newBudget != null) {
-                setState(() => _userBudget = newBudget);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Batas anggaran berhasil diubah ke Rp $_userBudget',
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final newBudget = int.tryParse(budgetCtrl.text.trim());
+                if (newBudget != null) {
+                  setState(() => _userBudget = newBudget);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Batas anggaran berhasil diubah ke Rp $_userBudget',
+                      ),
+                      backgroundColor: AppColors.positive,
                     ),
-                  ),
-                );
-              }
-              Navigator.pop(ctx);
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
-      ),
+                  );
+                }
+                Navigator.pop(ctx);
+              },
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -114,34 +156,49 @@ class _ProfilePageState extends State<ProfilePage> {
 
       showDialog(
         context: context,
-        builder: (dialogCtx) => AlertDialog(
-          title: const Text('Ekspor Data Transaksi (CSV)'),
-          content: SingleChildScrollView(
-            child: SelectableText(
-              csvData,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+        builder: (dialogCtx) {
+          final isDark = Theme.of(dialogCtx).brightness == Brightness.dark;
+          return AlertDialog(
+            backgroundColor: isDark
+                ? AppColors.surface
+                : AppColors.lightBackgroundCard,
+            title: Text(
+              'Ekspor Data Transaksi (CSV)',
+              style: TextStyle(
+                color: isDark ? AppColors.textPrimary : AppColors.primaryText,
+              ),
             ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Tutup'),
+            content: SingleChildScrollView(
+              child: SelectableText(
+                csvData,
+                style: TextStyle(
+                  fontFamily: 'monospace',
+                  fontSize: 12,
+                  color: isDark ? AppColors.textPrimary : AppColors.primaryText,
+                ),
+              ),
             ),
-            FilledButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Data CSV berhasil disalin!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-                Navigator.pop(dialogCtx);
-              },
-              icon: const Icon(Icons.copy_outlined),
-              label: const Text('Salin Data'),
-            ),
-          ],
-        ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Tutup'),
+              ),
+              FilledButton.icon(
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Data CSV berhasil disalin!'),
+                      backgroundColor: AppColors.positive,
+                    ),
+                  );
+                  Navigator.pop(dialogCtx);
+                },
+                icon: const Icon(Icons.copy_outlined),
+                label: const Text('Salin Data'),
+              ),
+            ],
+          );
+        },
       );
     }
   }
@@ -153,9 +210,42 @@ class _ProfilePageState extends State<ProfilePage> {
         ? user!.displayName!
         : 'Pengguna';
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pageBackground = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final navigationColor = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final cardColor = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
+    final dividerColor = isDark ? AppColors.divider : AppColors.lightGray;
+
     return Scaffold(
+      backgroundColor: pageBackground,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Padding(
+          padding: EdgeInsets.only(left: 4),
+          child: Text('Profile', style: TextStyle(color: primaryText)),
+        ),
+        backgroundColor: navigationColor,
+        foregroundColor: primaryText,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(
+            height: 1,
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          ),
+        ),
         actions: [
           IconButton(
             tooltip: 'Pengaturan',
@@ -165,16 +255,19 @@ class _ProfilePageState extends State<ProfilePage> {
               MaterialPageRoute(builder: (_) => const SettingsPage()),
             ),
           ),
-          IconButton(
-            tooltip: 'Keluar',
-            icon: _loggingOut
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.logout),
-            onPressed: _loggingOut ? null : _logout,
+          Padding(
+            padding: EdgeInsets.only(right: 12),
+            child: IconButton(
+              tooltip: 'Keluar',
+              icon: _loggingOut
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.logout),
+              onPressed: _loggingOut ? null : _logout,
+            ),
           ),
         ],
       ),
@@ -184,13 +277,19 @@ class _ProfilePageState extends State<ProfilePage> {
           children: [
             // KARTU PROFIL INTERAKTIF
             Card(
+              color: cardColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: borderColor, width: 1),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
                     const CircleAvatar(
                       radius: 32,
-                      backgroundColor: Colors.blueAccent,
+                      backgroundColor: AppColors.accentBlue,
                       child: Icon(Icons.person, size: 38, color: Colors.white),
                     ),
                     const SizedBox(width: 16),
@@ -200,16 +299,23 @@ class _ProfilePageState extends State<ProfilePage> {
                         children: [
                           Text(
                             userName,
-                            style: const TextStyle(
+                            style: TextStyle(
+                              color: primaryText,
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Chip(
-                            label: const Text(
+                            backgroundColor: isDark
+                                ? AppColors.background
+                                : AppColors.lightGray,
+                            label: Text(
                               'Mahasiswa Hemat 🛡️',
-                              style: TextStyle(fontSize: 10),
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: primaryText,
+                              ),
                             ),
                             padding: EdgeInsets.zero,
                             materialTapTargetSize:
@@ -219,7 +325,10 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(AppIcons.edit, color: Colors.blueAccent),
+                      icon: const Icon(
+                        AppIcons.edit,
+                        color: AppColors.accentBlue,
+                      ),
                       onPressed: _showEditProfileDialog,
                     ),
                   ],
@@ -234,6 +343,12 @@ class _ProfilePageState extends State<ProfilePage> {
               children: [
                 Expanded(
                   child: Card(
+                    color: cardColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: borderColor, width: 1),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
@@ -245,16 +360,20 @@ class _ProfilePageState extends State<ProfilePage> {
                                   : 0;
                               return Text(
                                 '$count',
-                                style: const TextStyle(
+                                style: TextStyle(
+                                  color: primaryText,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
                               );
                             },
                           ),
-                          const Text(
+                          Text(
                             'Transaksi',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: secondaryText,
+                            ),
                           ),
                         ],
                       ),
@@ -263,6 +382,12 @@ class _ProfilePageState extends State<ProfilePage> {
                 ),
                 Expanded(
                   child: Card(
+                    color: cardColor,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: borderColor, width: 1),
+                    ),
                     child: Padding(
                       padding: const EdgeInsets.all(12.0),
                       child: Column(
@@ -274,16 +399,20 @@ class _ProfilePageState extends State<ProfilePage> {
                                   : 0;
                               return Text(
                                 '$count',
-                                style: const TextStyle(
+                                style: TextStyle(
+                                  color: primaryText,
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
                                 ),
                               );
                             },
                           ),
-                          const Text(
+                          Text(
                             'Dompet Kas',
-                            style: TextStyle(fontSize: 11, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: secondaryText,
+                            ),
                           ),
                         ],
                       ),
@@ -294,34 +423,57 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Manajemen Keuangan',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              style: TextStyle(
+                color: primaryText,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 8),
 
             Card(
+              color: cardColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: borderColor, width: 1),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: Column(
                 children: [
                   ListTile(
                     leading: const Icon(
                       Icons.track_changes,
-                      color: Colors.orangeAccent,
+                      color: AppColors.accentBlue,
                     ),
-                    title: const Text('Atur Batas Anggaran Bulanan'),
-                    subtitle: Text('Target: Rp $_userBudget / bulan'),
-                    trailing: const Icon(Icons.chevron_right),
+                    title: Text(
+                      'Atur Batas Anggaran Bulanan',
+                      style: TextStyle(color: primaryText),
+                    ),
+                    subtitle: Text(
+                      'Target: Rp $_userBudget / bulan',
+                      style: TextStyle(color: secondaryText),
+                    ),
+                    trailing: Icon(Icons.chevron_right, color: secondaryText),
                     onTap: _showSetBudgetDialog,
                   ),
-                  const Divider(height: 1),
+                  Divider(height: 1, color: dividerColor),
                   ListTile(
                     leading: const Icon(
                       Icons.download_outlined,
-                      color: Colors.greenAccent,
+                      color: AppColors.accentBlue,
                     ),
-                    title: const Text('Ekspor Laporan Transaksi'),
-                    subtitle: const Text('Salin format CSV untuk LPJ'),
-                    trailing: const Icon(Icons.chevron_right),
+                    title: Text(
+                      'Ekspor Laporan Transaksi',
+                      style: TextStyle(color: primaryText),
+                    ),
+                    subtitle: Text(
+                      'Salin format CSV untuk LPJ',
+                      style: TextStyle(color: secondaryText),
+                    ),
+                    trailing: Icon(Icons.chevron_right, color: secondaryText),
                     onTap: () => _showExportDialog(context),
                   ),
                 ],
@@ -338,14 +490,10 @@ class _EditProfileDialog extends StatefulWidget {
   final String initialName;
   final Future<String?> Function(String name) onSave;
 
-  const _EditProfileDialog({
-    required this.initialName,
-    required this.onSave,
-  });
+  const _EditProfileDialog({required this.initialName, required this.onSave});
 
   @override
-  State<_EditProfileDialog> createState() =>
-      _EditProfileDialogState();
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
 }
 
 class _EditProfileDialogState extends State<_EditProfileDialog> {
@@ -357,9 +505,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(
-      text: widget.initialName,
-    );
+    _nameController = TextEditingController(text: widget.initialName);
   }
 
   @override
@@ -412,18 +558,44 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+
     return AlertDialog(
-      title: const Text('Edit Nama Profil'),
+      backgroundColor: isDark
+          ? AppColors.surface
+          : AppColors.lightBackgroundCard,
+      title: Text('Edit Nama Profil', style: TextStyle(color: primaryText)),
       content: TextField(
         controller: _nameController,
         autofocus: true,
         enabled: !_saving,
         textCapitalization: TextCapitalization.words,
+        style: TextStyle(color: primaryText),
         decoration: InputDecoration(
           labelText: 'Nama Lengkap',
           hintText: 'Masukkan nama lengkap',
           prefixIcon: const Icon(Icons.person_outline),
           errorText: _error,
+          filled: true,
+          fillColor: isDark
+              ? AppColors.background
+              : AppColors.lightInputBackground,
+          labelStyle: TextStyle(color: secondaryText),
+          hintStyle: TextStyle(color: secondaryText),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide(
+              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+            ),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: AppColors.accentBlue),
+          ),
         ),
         onChanged: (_) {
           if (_error != null) {
@@ -433,9 +605,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: _saving
-              ? null
-              : () => Navigator.of(context).pop(false),
+          onPressed: _saving ? null : () => Navigator.of(context).pop(false),
           child: const Text('Batal'),
         ),
         FilledButton(
@@ -444,9 +614,7 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                  ),
+                  child: CircularProgressIndicator(strokeWidth: 2),
                 )
               : const Text('Simpan'),
         ),

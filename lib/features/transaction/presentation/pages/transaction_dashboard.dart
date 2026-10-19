@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mymoney/core/di/theme/app_colors.dart';
+import 'package:mymoney/core/utils/currency_formatter.dart';
+import 'package:mymoney/core/utils/dashboard_calculator.dart';
+import 'package:mymoney/core/utils/dashboard_date_formatter.dart';
+import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
+import '../theme/dashboard_theme.dart';
+import '../widgets/dashboard_shared_widgets.dart';
 
 import '../../domain/entities/transaction_entity.dart';
 import '../cubit/transaction_cubit.dart';
@@ -12,7 +19,18 @@ import '../../../report/presentation/pages/report_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../wallet/presentation/cubit/wallet_cubit.dart';
-import '../../../../core/ui/app_icons.dart';
+import '../../../../core/di/theme/app_icons.dart';
+
+// ---------------------------------------------------------------------------
+// Index tab
+// ---------------------------------------------------------------------------
+class _Tab {
+  static const home = 0;
+  static const chat = 1;
+  static const report = 2;
+  static const profile = 3;
+  static const wallet = 4; // dibuka lewat chip "Semua Dompet" di kartu saldo
+}
 
 class TransactionDashboard extends StatefulWidget {
   const TransactionDashboard({super.key});
@@ -22,7 +40,8 @@ class TransactionDashboard extends StatefulWidget {
 }
 
 class _TransactionDashboardState extends State<TransactionDashboard> {
-  int _navIndex = 0;
+  int _navIndex = _Tab.home;
+  bool _hideBalance = false;
   final int _monthlyBudgetLimit = 1500000;
 
   @override
@@ -32,62 +51,531 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
     context.read<WalletCubit>().loadWallets();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final isMobile = MediaQuery.sizeOf(context).width < 600;
+  void _goToWallet() => setState(() => _navIndex = _Tab.wallet);
 
-    // 1. DITARUH DI SINI (Item Navigasi Index ke-2)
-    final destinations = [
-      const NavigationDestination(
-        icon: Icon(AppIcons.home),
-        selectedIcon: Icon(AppIcons.homeActive),
-        label: 'Home',
-      ),
-      const NavigationDestination(
-        icon: Icon(AppIcons.wallet),
-        selectedIcon: Icon(AppIcons.walletActive),
-        label: 'Wallet',
-      ),
-      const NavigationDestination(
-        icon: Icon(AppIcons.ai),
-        selectedIcon: Icon(AppIcons.aiActive),
-        label: 'AI Chat',
-      ),
-      const NavigationDestination(
-        icon: Icon(AppIcons.report),
-        selectedIcon: Icon(AppIcons.reportActive),
-        label: 'Report',
-      ),
-      const NavigationDestination(
-        icon: Icon(AppIcons.profile),
-        selectedIcon: Icon(AppIcons.profileActive),
-        label: 'Profile',
-      ),
-    ];
-
-    final railDestinations = destinations
-        .map(
-          (d) => NavigationRailDestination(
-            icon: d.icon,
-            selectedIcon: d.selectedIcon,
-            label: Text(d.label),
-          ),
-        )
-        .toList();
-
-    // Konten Utama Dashboard
-    final dashboardContent = SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+  // =========================================================================
+  // HEADER
+  // =========================================================================
+  Widget _buildHeader(DashboardColors colors, String username) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      child: Row(
         children: [
-          BlocBuilder<TransactionCubit, TransactionState>(
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: AppColors.accentBlue.withOpacity(colors.isDark ? 0.20 : 0.12),
+            child: const Icon(AppIcons.profile, color: AppColors.accentBlue),
+          ),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Hi, $username',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: colors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                DashboardDateFormatter.today(),
+                style: TextStyle(fontSize: 12, color: colors.textSecondary),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // KARTU SALDO
+  // =========================================================================
+  Widget _buildBalanceCard({
+    required int totalBalance,
+    required int income,
+    required int expense,
+    required double? incomeChange,
+    required double? expenseChange,
+    required DashboardColors colors,
+  }) {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: colors.balanceGradient,
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: CustomPaint(
+          painter: CardStripePainter(),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Chip akun + titik tiga
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: _goToWallet,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.14),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.account_balance_wallet_outlined,
+                              size: 15,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Semua Dompet',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 2),
+                            Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    const Icon(
+                      Icons.more_vert,
+                      color: Colors.white70,
+                      size: 20,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Sisa Uang Saku',
+                  style: TextStyle(fontSize: 13, color: Colors.white70),
+                ),
+                const SizedBox(height: 4),
+
+                // Total saldo + ikon mata
+                Row(
+                  children: [
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          _hideBalance ? 'Rp ••••••' : CurrencyFormatter.format(totalBalance),
+                          style: TextStyle(
+                            fontSize: 34,
+                            fontWeight: FontWeight.bold,
+                            color: totalBalance >= 0 ? Colors.white : AppColors.negative,
+                          ),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () =>
+                          setState(() => _hideBalance = !_hideBalance),
+                      icon: Icon(
+                        _hideBalance
+                            ? Icons.visibility_off_outlined
+                            : Icons.visibility_outlined,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 12),
+                Divider(height: 1, color: Colors.white.withOpacity(0.15)),
+                const SizedBox(height: 14),
+
+                // Pemasukan & pengeluaran bulanan
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMonthlyStat(
+                        label: 'Pemasukan Bulanan',
+                        amount: income,
+                        colors: colors,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _buildMonthlyStat(
+                        label: 'Pengeluaran Bulanan',
+                        amount: expense,
+                        colors: colors,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyStat({
+    required String label,
+    required int amount,
+    required DashboardColors colors,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(fontSize: 12, color: Colors.white60),
+        ),
+        const SizedBox(height: 4),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Row(
+            children: [
+              Text(
+                _hideBalance ? 'Rp ••••••' : CurrencyFormatter.format(amount),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =========================================================================
+  // KARTU ANGGARAN BULANAN
+  // =========================================================================
+  Widget _buildBudgetCard(int totalExpense, DashboardColors colors) {
+    final ratio = (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
+    final percent = (totalExpense / _monthlyBudgetLimit * 100).round();
+    final isOverBudget = totalExpense > _monthlyBudgetLimit;
+    final barColor = isOverBudget ? AppColors.negative : AppColors.accentBlue;
+
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.card,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            isOverBudget
+                ? '⚠️ Pengeluaran Melebihi Target!'
+                : 'Anggaran Bulanan',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: isOverBudget ? AppColors.negative : colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: LinearProgressIndicator(
+              value: ratio,
+              minHeight: 10,
+              color: barColor,
+              backgroundColor: colors.track,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text.rich(
+                  TextSpan(
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colors.textSecondary,
+                    ),
+                    children: [
+                      const TextSpan(text: 'Terpakai '),
+                      TextSpan(
+                        text: CurrencyFormatter.format(totalExpense),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                      TextSpan(text: ' / ${CurrencyFormatter.format(_monthlyBudgetLimit)}'),
+                    ],
+                  ),
+                ),
+              ),
+              Text(
+                '$percent%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: barColor,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================================
+  // RIWAYAT TRANSAKSI
+  // =========================================================================
+  Widget _buildTransactionSliver(BuildContext context, TransactionState state, DashboardColors colors) {
+    return switch (state) {
+      DataInitial() => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: Text('Menyiapkan Data...')),
+        ),
+      ),
+      DataLoading() => const SliverToBoxAdapter(
+        child: Padding(
+          padding: EdgeInsets.all(32),
+          child: Center(child: CircularProgressIndicator.adaptive()),
+        ),
+      ),
+      DataError(:final message) => SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Center(child: Text('Galat: $message')),
+        ),
+      ),
+      DataSuccess(:final transactions) =>
+        transactions.isEmpty
+            ? const SliverToBoxAdapter(
+                child: Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(child: Text('Belum ada transaksi.')),
+                ),
+              )
+            : SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                sliver: SliverList.separated(
+                  itemCount: transactions.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, index) {
+                    final item = transactions[index];
+                    final isIncome = item.type == TransactionType.income;
+                    final accent = isIncome ? AppColors.positive : AppColors.negative;
+                    final accentBg = accent.withOpacity(colors.isDark ? 0.18 : 0.12);
+
+                    return Container(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+                      decoration: BoxDecoration(
+                        color: colors.card,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: colors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: accentBg,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              isIncome ? AppIcons.income : AppIcons.expense,
+                              color: accent,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  item.title,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: colors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 12,
+                                      color: colors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        '${DashboardDateFormatter.shortDate(item.date)} • ${item.category} • ${item.walletName}',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: colors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${isIncome ? '+' : '-'} ${CurrencyFormatter.format(item.amount)}',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: isIncome ? AppColors.positive : AppColors.negative,
+                            ),
+                          ),
+                          PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            color: colors.popupBackground,
+                            surfaceTintColor: Colors.transparent,
+                            icon: Icon(
+                              Icons.more_vert,
+                              size: 18,
+                              color: colors.textSecondary,
+                            ),
+                            onSelected: (value) async {
+                              if (value == 'edit') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => TransactionFormPage(
+                                      initialTransaction: item,
+                                    ),
+                                  ),
+                                );
+                              } else if (value == 'delete') {
+                                // kembalikan saldo dompet sebelum transaksi dihapus
+                                final walletCubit = context.read<WalletCubit>();
+                                final txCubit = context
+                                    .read<TransactionCubit>();
+                                await walletCubit.adjustBalance(
+                                  item.walletId,
+                                  isIncome ? -item.amount : item.amount,
+                                );
+                                txCubit.delete(item.id);
+                              }
+                            },
+                            itemBuilder: (_) => [
+                              PopupMenuItem(
+                                value: 'edit',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      AppIcons.edit,
+                                      size: 18,
+                                      color: AppColors.accentBlue,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Ubah',
+                                      style: TextStyle(color: colors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              PopupMenuItem(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      AppIcons.delete,
+                                      size: 18,
+                                      color: AppColors.negative,
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Hapus',
+                                      style: TextStyle(color: colors.textPrimary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+    };
+  }
+
+  // =========================================================================
+  // KONTEN DASHBOARD
+  // =========================================================================
+  Widget _buildDashboard(BuildContext context, DashboardColors colors, String userName) {
+    return Theme(
+      data: dashboardThemeOf(context, colors),
+      child: ColoredBox(
+        color: colors.background,
+        child: SafeArea(
+          child: BlocBuilder<TransactionCubit, TransactionState>(
             builder: (context, state) {
-              int totalExpense = 0;
+              // Hitung pemasukan/pengeluaran bulan ini & bulan lalu
+              final now = DateTime.now();
+              final prev = DateTime(now.year, now.month - 1);
+              int income = 0, expense = 0, prevIncome = 0, prevExpense = 0;
 
               if (state is DataSuccess) {
-                for (var item in state.transactions) {
-                  if (item.type == TransactionType.expense) {
-                    totalExpense += item.amount;
+                for (final t in state.transactions) {
+                  final isThisMonth =
+                      t.date.year == now.year && t.date.month == now.month;
+                  final isPrevMonth =
+                      t.date.year == prev.year && t.date.month == prev.month;
+                  final isIncome = t.type == TransactionType.income;
+
+                  if (isThisMonth) {
+                    if (isIncome) {
+                      income += t.amount;
+                    } else {
+                      expense += t.amount;
+                    }
+                  } else if (isPrevMonth) {
+                    if (isIncome) {
+                      prevIncome += t.amount;
+                    } else {
+                      prevExpense += t.amount;
+                    }
                   }
                 }
               }
@@ -101,288 +589,211 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                     )
                   : 0;
 
-              final double budgetUsageRatio =
-                  (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
-              final bool isOverBudget = totalExpense > _monthlyBudgetLimit;
-
-              return Card(
-                margin: const EdgeInsets.all(16),
-                color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Sisa Uang Saku 🔒',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Rp $totalBalance',
-                        style: Theme.of(context).textTheme.headlineLarge
-                            ?.copyWith(
-                              fontWeight: FontWeight.bold,
-                              color: totalBalance >= 0
-                                  ? Colors.greenAccent
-                                  : Colors.redAccent,
-                            ),
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.arrow_downward,
-                            color: Colors.redAccent,
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Total Pengeluaran: Rp $totalExpense',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Divider(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            isOverBudget
-                                ? '⚠️ Pengeluaran Melebihi Target!'
-                                : 'Batas Target Anggaran',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: isOverBudget
-                                  ? Colors.redAccent
-                                  : Colors.white70,
-                            ),
-                          ),
-                          Text(
-                            'Rp $totalExpense / Rp $_monthlyBudgetLimit',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      LinearProgressIndicator(
-                        value: budgetUsageRatio,
-                        minHeight: 8,
-                        borderRadius: BorderRadius.circular(4),
-                        color: budgetUsageRatio > 0.8
-                            ? Colors.redAccent
-                            : Colors.orangeAccent,
-                        backgroundColor: Colors.grey.shade800,
-                      ),
-                    ],
+              return CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(child: _buildHeader(colors, userName)),
+                  SliverToBoxAdapter(
+                    child: _buildBalanceCard(
+                      totalBalance: totalBalance,
+                      income: income,
+                      expense: expense,
+                      incomeChange: DashboardCalculator.changePercentage(income, prevIncome),
+                      expenseChange: DashboardCalculator.changePercentage(expense, prevExpense),
+                      colors: colors,
+                    ),
                   ),
-                ),
+                  SliverToBoxAdapter(child: _buildBudgetCard(expense, colors)),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                      child: Text(
+                        'Riwayat Transaksi',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: colors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  _buildTransactionSliver(context, state, colors),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                ],
               );
             },
           ),
+        ),
+      ),
+    );
+  }
 
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0),
-            child: Text(
-              'Riwayat Transaksi Mahasiswa',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  // =========================================================================
+  // BOTTOM BAR: Home | AI Chat | (+) | Report | Profile
+  // =========================================================================
+  Widget _buildBottomBar(DashboardColors colors) {
+    return BottomAppBar(
+      color: colors.navigationBar,
+      surfaceTintColor: Colors.transparent,
+      height: 72,
+      padding: EdgeInsets.zero,
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 8,
+      child: Row(
+        children: [
+          Expanded(
+            child: DashboardNavItem(
+              icon: AppIcons.home,
+              activeIcon: AppIcons.homeActive,
+              label: 'Home',
+              selected: _navIndex == _Tab.home,
+              unselectedColor: colors.textSecondary,
+              onTap: () => setState(() => _navIndex = _Tab.home),
             ),
           ),
-          const SizedBox(height: 8),
-
           Expanded(
-            child: BlocBuilder<TransactionCubit, TransactionState>(
-              builder: (context, state) {
-                return switch (state) {
-                  DataInitial() => const Center(
-                    child: Text('Menyiapkan Data...'),
-                  ),
-                  DataLoading() => const Center(
-                    child: CircularProgressIndicator.adaptive(),
-                  ),
-                  DataError(:final message) => Center(
-                    child: Text('Galat: $message'),
-                  ),
-                  DataSuccess(:final transactions) =>
-                    transactions.isEmpty
-                        ? const Center(child: Text('Belum ada transaksi.'))
-                        : ListView.builder(
-                            itemCount: transactions.length,
-                            itemBuilder: (context, index) {
-                              final item = transactions[index];
-                              final isIncome =
-                                  item.type == TransactionType.income;
-
-                              return ListTile(
-                                leading: CircleAvatar(
-                                  backgroundColor: isIncome
-                                      ? Colors.green.withValues(alpha: 0.2)
-                                      : Colors.red.withValues(alpha: 0.2),
-                                  child: Icon(
-                                    isIncome
-                                        ? AppIcons.income
-                                        : AppIcons.expense,
-                                    color: isIncome ? Colors.green : Colors.red,
-                                  ),
-                                ),
-                                title: Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item.title,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Text(
-                                      '${isIncome ? '+' : '-'} Rp ${item.amount}',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: isIncome
-                                            ? Colors.greenAccent
-                                            : Colors.redAccent,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                subtitle: Row(
-                                  children: [
-                                    Chip(
-                                      label: Text(
-                                        item.category,
-                                        style: const TextStyle(fontSize: 10),
-                                      ),
-                                      padding: EdgeInsets.zero,
-                                      materialTapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${item.walletName} • ${item.date.toString().substring(0, 10)}',
-                                      style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(
-                                        AppIcons.edit,
-                                        color: Colors.blueAccent,
-                                      ),
-                                      onPressed: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (context) =>
-                                                TransactionFormPage(
-                                                  initialTransaction: item,
-                                                ),
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    IconButton(
-                                      icon: const Icon(
-                                        AppIcons.delete,
-                                        color: Colors.redAccent,
-                                      ),
-                                      onPressed: () async {
-                                        final walletCubit = context
-                                            .read<WalletCubit>();
-                                        final txCubit = context
-                                            .read<TransactionCubit>();
-                                        final deleted =
-                                            await txCubit.delete(item.id);
-                                        if (!context.mounted) return;
-                                        if (deleted) {
-                                          await walletCubit.loadWallets();
-                                        } else {
-                                          final errorState = txCubit.state;
-                                          ScaffoldMessenger.of(context)
-                                              .showSnackBar(
-                                                SnackBar(
-                                                  content: Text(
-                                                    errorState is DataError
-                                                        ? errorState.message
-                                                        : 'Transaksi gagal dihapus.',
-                                                  ),
-                                                ),
-                                              );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                };
-              },
+            child: DashboardNavItem(
+              icon: AppIcons.ai,
+              activeIcon: AppIcons.aiActive,
+              label: 'AI Chat',
+              selected: _navIndex == _Tab.chat,
+              unselectedColor: colors.textSecondary,
+              onTap: () => setState(() => _navIndex = _Tab.chat),
+            ),
+          ),
+          const SizedBox(width: 72), // ruang untuk tombol tambah
+          Expanded(
+            child: DashboardNavItem(
+              icon:
+                  Icons.insert_chart_outlined_rounded, // belum dipilih: outline
+              activeIcon: Icons.insert_chart_rounded, // dipilih: filled
+              label: 'Report',
+              selected: _navIndex == _Tab.report,
+              unselectedColor: colors.textSecondary,
+              onTap: () => setState(() => _navIndex = _Tab.report),
+            ),
+          ),
+          Expanded(
+            child: DashboardNavItem(
+              icon: AppIcons.profile,
+              activeIcon: AppIcons.profileActive,
+              label: 'Profile',
+              selected: _navIndex == _Tab.profile,
+              unselectedColor: colors.textSecondary,
+              onTap: () => setState(() => _navIndex = _Tab.profile),
             ),
           ),
         ],
       ),
     );
+  }
 
-    // 2. DITARUH DI SINI (Switch Penentuan Tampilan Aktif)
-    Widget activeBody;
-    switch (_navIndex) {
-      case 1:
-        activeBody = const WalletPage();
-        break;
-      case 2:
-        activeBody = const ChatPage(); // Beralih ke Chatbot AI
-        break;
-      case 3:
-        activeBody = const ReportPage();
-        break;
-      case 4:
-        activeBody = const ProfilePage();
-        break;
-      default:
-        activeBody = dashboardContent;
-    }
+  // =========================================================================
+  // BUILD
+  // =========================================================================
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthCubit>().currentUser;
+    final userName = user?.displayName?.trim().isNotEmpty == true
+        ? user!.displayName!
+        : 'Pengguna';
+    
+    final colors = DashboardColors.from(context);
+    final isMobile = MediaQuery.sizeOf(context).width < 600;
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Scaffold(
-      floatingActionButton: _navIndex == 0
-          ? FloatingActionButton.extended(
-              onPressed: () => context.push('/form'),
-              icon: const Icon(AppIcons.add),
-              label: const Text('Catat Transaksi'),
-            )
-          : null,
-      body: isMobile
-          ? activeBody
-          : Row(
-              children: [
-                NavigationRail(
-                  selectedIndex: _navIndex,
-                  onDestinationSelected: (val) =>
-                      setState(() => _navIndex = val),
-                  destinations: railDestinations,
-                ),
-                Expanded(child: activeBody),
-              ],
-            ),
-      bottomNavigationBar: isMobile
-          ? NavigationBar(
-              selectedIndex: _navIndex,
-              onDestinationSelected: (val) => setState(() => _navIndex = val),
-              destinations: destinations,
-            )
-          : null,
+    final Widget activeBody = switch (_navIndex) {
+      _Tab.chat => const ChatPage(),
+      _Tab.report => const ReportPage(),
+      _Tab.profile => const ProfilePage(),
+      _Tab.wallet => const WalletPage(),
+      _ => _buildDashboard(context, colors, userName),
+    };
+
+    // Urutan sesuai index _Tab (dipakai oleh NavigationRail di layar lebar)
+    const railItems = [
+      NavigationRailDestination(
+        icon: Icon(AppIcons.home),
+        selectedIcon: Icon(AppIcons.homeActive),
+        label: Text('Home'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(AppIcons.ai),
+        selectedIcon: Icon(AppIcons.aiActive),
+        label: Text('AI Chat'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(Icons.insert_chart_outlined_rounded),
+        selectedIcon: Icon(Icons.insert_chart_outlined_rounded),
+        label: Text('Report'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(AppIcons.profile),
+        selectedIcon: Icon(AppIcons.profileActive),
+        label: Text('Profile'),
+      ),
+      NavigationRailDestination(
+        icon: Icon(AppIcons.wallet),
+        selectedIcon: Icon(AppIcons.walletActive),
+        label: Text('Wallet'),
+      ),
+    ];
+
+    return PopScope(
+      // Tombol back dari tab lain kembali ke Home dulu
+      canPop: _navIndex == _Tab.home,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) setState(() => _navIndex = _Tab.home);
+      },
+      child: Scaffold(
+        backgroundColor: colors.background,
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+        floatingActionButton: (isMobile && !keyboardOpen)
+            ? FloatingActionButton(
+                onPressed: () => context.push('/form'),
+                backgroundColor: AppColors.accentBlue,
+                foregroundColor: Colors.white,
+                shape: const CircleBorder(),
+                child: const Icon(AppIcons.add),
+              )
+            : null,
+        body: isMobile
+            ? activeBody
+            : Row(
+                children: [
+                  NavigationRail(
+                    backgroundColor: colors.background,
+                    selectedIconTheme: const IconThemeData(
+                      color: AppColors.accentBlue,
+                    ),
+                    unselectedIconTheme: IconThemeData(
+                      color: colors.textSecondary,
+                    ),
+                    selectedLabelTextStyle: const TextStyle(
+                      color: AppColors.accentBlue,
+                    ),
+                    unselectedLabelTextStyle: TextStyle(
+                      color: colors.textSecondary,
+                    ),
+                    selectedIndex: _navIndex,
+                    labelType: NavigationRailLabelType.all,
+                    onDestinationSelected: (val) =>
+                        setState(() => _navIndex = val),
+                    leading: Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                      child: FloatingActionButton(
+                        backgroundColor: AppColors.accentBlue,
+                        foregroundColor: Colors.white,
+                        onPressed: () => context.push('/form'),
+                        child: const Icon(AppIcons.add),
+                      ),
+                    ),
+                    destinations: railItems,
+                  ),
+                  Expanded(child: activeBody),
+                ],
+              ),
+        bottomNavigationBar: isMobile ? _buildBottomBar(colors) : null,
+      ),
     );
   }
 }

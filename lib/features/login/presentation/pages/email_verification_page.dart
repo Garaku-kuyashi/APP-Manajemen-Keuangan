@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mymoney/core/di/theme/app_colors.dart';
 
 import '../cubit/auth_cubit.dart';
 
@@ -53,11 +54,25 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final pageBackground = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+
+    final textColor = isDark ? AppColors.textPrimary : AppColors.primaryText;
+
+    final secondaryTextColor = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+
     final email = context.select<AuthCubit, String?>(
       (cubit) => cubit.state?.email,
     );
 
     return Scaffold(
+      backgroundColor: pageBackground,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -71,23 +86,30 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   Icon(
                     Icons.mark_email_unread_outlined,
                     size: 56,
-                    color: Theme.of(context).colorScheme.primary,
+                    color: AppColors.accentBlue,
                   ),
                   const SizedBox(height: 20),
                   Text(
                     'Verifikasi email Anda',
                     textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall,
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: textColor,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
                     'Kami mengirim tautan verifikasi ke ${email ?? 'alamat email Anda.'}. Periksa bagian spam jika tidak menemukan email pada inbox. '
                     'Buka tautan tersebut, lalu kembali ke aplikasi.',
                     textAlign: TextAlign.center,
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: secondaryTextColor,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   FilledButton(
                     style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accentBlue,
+                      foregroundColor: Colors.white,
                       minimumSize: const Size.fromHeight(48),
                     ),
                     onPressed: _loading
@@ -100,13 +122,17 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Saya sudah memverifikasi'),
                   ),
                   const SizedBox(height: 16),
                   TextButton(
                     style: TextButton.styleFrom(
+                      foregroundColor: AppColors.accentBlue,
                       minimumSize: const Size.fromHeight(48),
                     ),
                     onPressed: _loading
@@ -119,6 +145,7 @@ class _EmailVerificationPageState extends State<EmailVerificationPage> {
                   ),
                   TextButton(
                     style: TextButton.styleFrom(
+                      foregroundColor: AppColors.accentBlue,
                       minimumSize: const Size.fromHeight(48),
                     ),
                     onPressed: _loading ? null : _logout,

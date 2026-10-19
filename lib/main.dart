@@ -4,6 +4,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:mymoney/core/di/theme/app_theme.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 import 'package:mymoney/features/login/domain/repositories/auth_repository.dart';
 import 'package:mymoney/features/login/presentation/auth_routes.dart';
@@ -20,14 +22,11 @@ import 'features/wallet/presentation/cubit/wallet_cubit.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  initDI(
-    firestore: FirebaseFirestore.instance,
-    auth: FirebaseAuth.instance,
-  );
+  await initializeDateFormatting('id_ID', null);
+
+  initDI(firestore: FirebaseFirestore.instance, auth: FirebaseAuth.instance);
 
   final authCubit = AuthCubit(sl<AuthRepository>());
 
@@ -64,7 +63,9 @@ class MyMoneyApp extends StatelessWidget {
         BlocProvider<AuthCubit>.value(value: authCubit),
         BlocProvider<TransactionCubit>(create: (_) => sl<TransactionCubit>()),
         BlocProvider<WalletCubit>(create: (_) => sl<WalletCubit>()),
-        BlocProvider<ThemeCubit>(create: (_) => ThemeCubit()), // Tambahkan ThemeCubit
+        BlocProvider<ThemeCubit>(
+          create: (_) => ThemeCubit(),
+        ), // Tambahkan ThemeCubit
       ],
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {
@@ -72,17 +73,13 @@ class MyMoneyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             title: 'MyMoney',
             routerConfig: router,
-            themeMode: themeMode, // Tema Reaktif
-            theme: ThemeData(
-              useMaterial3: true,
-              colorSchemeSeed: Colors.blueGrey,
-              brightness: Brightness.light, // Preset Mode Terang
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              colorSchemeSeed: Colors.blueGrey,
-              brightness: Brightness.dark, // Preset Mode Gelap
-            ),
+
+            // Tema mengikuti ThemeCubit.
+            themeMode: themeMode,
+
+            // Tema global aplikasi.
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
           );
         },
       ),

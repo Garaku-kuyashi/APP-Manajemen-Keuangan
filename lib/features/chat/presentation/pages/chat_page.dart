@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/theme/app_colors.dart';
 import '../../../../core/services/gemini_ai_service.dart';
-import '../../../../core/ui/app_icons.dart';
+import '../../../../core/di/theme/app_icons.dart';
 import '../../../../core/utils/wallet_matcher.dart';
 import '../../../transaction/domain/entities/transaction_entity.dart';
 import '../../../transaction/domain/usecases/transaction_balance_rules.dart';
@@ -180,9 +181,27 @@ class _ChatPageState extends State<ChatPage> {
     final repository = context.read<ChatRepository>();
     final activeTopicId = _activeTopicId;
     final isThread = activeTopicId != null || _isCreatingTopic;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pageBackground = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final appBarColor = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Scaffold(
+      backgroundColor: pageBackground,
       appBar: AppBar(
+        backgroundColor: appBarColor,
+        foregroundColor: primaryText,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: borderColor),
+        ),
         leading: isThread
             ? IconButton(
                 tooltip: 'Daftar topik',
@@ -195,18 +214,21 @@ class _ChatPageState extends State<ChatPage> {
                 icon: const Icon(Icons.arrow_back),
               )
             : null,
-        title: Row(
-          children: [
-            const Icon(AppIcons.aiActive, color: AppIcons.aiColor),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                isThread ? 'Percakapan AI' : 'Teman Keuangan AI',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        title: Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Row(
+            children: [
+              const Icon(AppIcons.aiActive, color: AppColors.accentBlue),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isThread ? 'Percakapan AI' : 'Teman Keuangan AI',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         actions: [
           IconButton(
@@ -225,11 +247,26 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildTopicList(ChatRepository repository) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     return StreamBuilder<List<ChatTopic>>(
       stream: repository.watchTopics(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text('Gagal memuat topik: ${snapshot.error}'));
+          return Center(
+            child: Text(
+              'Gagal memuat topik: ${snapshot.error}',
+              style: TextStyle(color: primaryText),
+            ),
+          );
         }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator.adaptive());
@@ -242,11 +279,22 @@ class _ChatPageState extends State<ChatPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.forum_outlined, size: 52),
+                  Icon(
+                    Icons.forum_outlined,
+                    size: 52,
+                    color: AppColors.accentBlue,
+                  ),
                   const SizedBox(height: 12),
-                  const Text('Belum ada topik percakapan.'),
+                  Text(
+                    'Belum ada topik percakapan.',
+                    style: TextStyle(color: primaryText),
+                  ),
                   const SizedBox(height: 12),
                   FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.accentBlue,
+                      foregroundColor: Colors.white,
+                    ),
                     onPressed: _startNewTopic,
                     icon: const Icon(Icons.add),
                     label: const Text('Mulai percakapan'),
@@ -263,16 +311,36 @@ class _ChatPageState extends State<ChatPage> {
           itemBuilder: (context, index) {
             final topic = topics[index];
             return Card(
+              color: cardColor,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(color: borderColor),
+              ),
+              clipBehavior: Clip.antiAlias,
               child: ListTile(
-                leading: const CircleAvatar(
-                  child: Icon(Icons.chat_bubble_outline),
+                leading: CircleAvatar(
+                  backgroundColor: isDark
+                      ? AppColors.background
+                      : AppColors.lightNavigation,
+                  child: const Icon(
+                    Icons.chat_bubble_outline,
+                    color: AppColors.accentBlue,
+                  ),
                 ),
                 title: Text(
                   topic.title,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: primaryText,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-                subtitle: Text(_formatDate(topic.updatedAt)),
+                subtitle: Text(
+                  _formatDate(topic.updatedAt),
+                  style: TextStyle(color: secondaryText),
+                ),
                 onTap: () => setState(() {
                   _activeTopicId = topic.id;
                   _isCreatingTopic = false;
@@ -280,7 +348,10 @@ class _ChatPageState extends State<ChatPage> {
                 trailing: IconButton(
                   tooltip: 'Hapus topik',
                   onPressed: () => _deleteTopic(topic),
-                  icon: const Icon(Icons.delete_outline),
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: AppColors.negative,
+                  ),
                 ),
               ),
             );
@@ -291,6 +362,16 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildThread(ChatRepository repository, String? topicId) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+    final inputBackground = isDark
+        ? AppColors.background
+        : AppColors.lightInputBackground;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
     return Column(
       children: [
         Expanded(
@@ -313,7 +394,10 @@ class _ChatPageState extends State<ChatPage> {
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
-                        child: Text('Gagal memuat pesan: ${snapshot.error}'),
+                        child: Text(
+                          'Gagal memuat pesan: ${snapshot.error}',
+                          style: TextStyle(color: primaryText),
+                        ),
                       );
                     }
                     if (snapshot.connectionState == ConnectionState.waiting) {
@@ -340,22 +424,32 @@ class _ChatPageState extends State<ChatPage> {
                 ),
         ),
         if (_isSending)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                SizedBox(
+                const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.accentBlue,
+                  ),
                 ),
-                SizedBox(width: 8),
-                Text('AI sedang menganalisis...'),
+                const SizedBox(width: 8),
+                Text(
+                  'AI sedang menganalisis...',
+                  style: TextStyle(color: secondaryText),
+                ),
               ],
             ),
           ),
-        Padding(
+        Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surface : AppColors.lightBackgroundCard,
+            border: Border(top: BorderSide(color: borderColor)),
+          ),
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
@@ -363,12 +457,34 @@ class _ChatPageState extends State<ChatPage> {
                 child: TextField(
                   controller: _messageController,
                   enabled: !_isSending,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: primaryText),
+                  decoration: InputDecoration(
                     hintText: 'Tanya atau ceritakan soal keuangan...',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
+                    hintStyle: TextStyle(color: secondaryText),
+                    filled: true,
+                    fillColor: inputBackground,
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 12,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: AppColors.accentBlue,
+                        width: 1.5,
+                      ),
+                    ),
+                    disabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(color: borderColor),
                     ),
                   ),
                   onSubmitted: (_) => _sendMessage(),
@@ -376,6 +492,10 @@ class _ChatPageState extends State<ChatPage> {
               ),
               const SizedBox(width: 8),
               IconButton.filled(
+                style: IconButton.styleFrom(
+                  backgroundColor: AppColors.accentBlue,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: _isSending ? null : _sendMessage,
                 icon: const Icon(AppIcons.send),
               ),
@@ -387,6 +507,19 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessage(ChatMessage message) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final bubbleColor = message.isUser
+        ? AppColors.accentBlue
+        : (isDark ? AppColors.surface : AppColors.lightNavigation);
+    final textColor = message.isUser
+        ? Colors.white
+        : (isDark ? AppColors.textPrimary : AppColors.primaryText);
+    final bubbleBorder = !message.isUser
+        ? Border.all(
+            color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+          )
+        : null;
+
     return Align(
       alignment: message.isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
@@ -396,19 +529,11 @@ class _ChatPageState extends State<ChatPage> {
           maxWidth: MediaQuery.sizeOf(context).width * 0.78,
         ),
         decoration: BoxDecoration(
-          color: message.isUser
-              ? Theme.of(context).colorScheme.primaryContainer
-              : Theme.of(context).colorScheme.surfaceContainerHighest,
+          color: bubbleColor,
+          border: bubbleBorder,
           borderRadius: BorderRadius.circular(16),
         ),
-        child: Text(
-          message.text,
-          style: TextStyle(
-            color: message.isUser
-                ? Theme.of(context).colorScheme.onPrimaryContainer
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
-        ),
+        child: Text(message.text, style: TextStyle(color: textColor)),
       ),
     );
   }

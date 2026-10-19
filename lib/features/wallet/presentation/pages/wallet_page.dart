@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/ui/app_icons.dart';
+import '../../../../core/di/theme/app_icons.dart';
 import '../../domain/entities/wallet_entity.dart';
 import '../cubit/wallet_cubit.dart';
 import '../cubit/wallet_state.dart';

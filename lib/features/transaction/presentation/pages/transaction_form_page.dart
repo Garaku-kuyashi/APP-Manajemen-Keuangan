@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mymoney/core/di/theme/app_colors.dart';
 
 import '../../../../core/services/gemini_ai_service.dart';
-import '../../../../core/ui/app_icons.dart';
+import '../../../../core/di/theme/app_icons.dart';
 import '../../../../core/utils/wallet_matcher.dart';
 import '../../../wallet/domain/entities/wallet_entity.dart';
 import '../../../wallet/presentation/cubit/wallet_cubit.dart';
@@ -79,7 +80,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           return AlertDialog(
             title: const Row(
               children: [
-                Icon(AppIcons.aiActive, color: AppIcons.aiColor),
+                Icon(AppIcons.aiActive, color: AppColors.accentBlue),
                 SizedBox(width: 8),
                 Text('Gemini AI Express Input'),
               ],
@@ -314,7 +315,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                       onPressed: _showAiPromptDialog,
                       icon: const Icon(
                         AppIcons.aiActive,
-                        color: AppIcons.aiColor,
+                        color: AppColors.accentBlue,
                       ),
                       label: const Text(
                         'Isi & Simpan Otomatis Pakai Gemini AI 🪄',
