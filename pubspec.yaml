@@ -48,6 +48,9 @@ dependencies:
   firebase_auth: ^7.0.0
   cloud_firestore: ^7.0.0
 
+  # Depedensi format rupiah
+  intl: ^0.20.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
