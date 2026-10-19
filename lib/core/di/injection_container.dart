@@ -13,12 +13,21 @@ import '../../features/wallet/domain/repositories/wallet_repository.dart';
 import '../../features/wallet/domain/usecases/wallet_usecases.dart';
 import '../../features/wallet/presentation/cubit/wallet_cubit.dart';
 
+import '../../features/login/data/repositories/auth_repository_impl.dart';
+import '../../features/login/domain/repositories/auth_repository.dart';
+
 final sl = GetIt.instance;
 
 void initDI({
   required FirebaseFirestore firestore,
   required FirebaseAuth auth,
 }) {
+
+  // === AUTH FEATURE ===
+  sl.registerLazySingleton<AuthRepository>(
+    () => AuthRepositoryImpl(auth),
+  );
+
   // === TRANSACTION FEATURE ===
   sl.registerFactory<TransactionCubit>(() => TransactionCubit(
         getTransactions: sl(),

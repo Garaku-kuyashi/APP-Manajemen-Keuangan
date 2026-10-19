@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 
-import '../../../login/login_feature.dart';
 import '../../../../core/ui/app_icons.dart';
 import 'settings_page.dart';
 import '../../../transaction/presentation/cubit/transaction_cubit.dart';
@@ -17,8 +17,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  String _userName = "M. Fahrianor";
-  String _userNim = "2409106089";
   int _userBudget = 1500000;
   bool _loggingOut = false;
 
@@ -37,46 +35,27 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _showEditProfileDialog() {
-    final nameCtrl = TextEditingController(text: _userName);
-    final nimCtrl = TextEditingController(text: _userNim);
+  Future<void> _showEditProfileDialog() async {
+    final authCubit = context.read<AuthCubit>();
 
-    showDialog(
+    final updated = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Profil Mahasiswa'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameCtrl,
-              decoration: const InputDecoration(labelText: 'Nama Lengkap'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: nimCtrl,
-              decoration: const InputDecoration(labelText: 'NIM'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Batal'),
-          ),
-          FilledButton(
-            onPressed: () {
-              setState(() {
-                _userName = nameCtrl.text.trim();
-                _userNim = nimCtrl.text.trim();
-              });
-              Navigator.pop(ctx);
-            },
-            child: const Text('Simpan'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (_) => _EditProfileDialog(
+        initialName: authCubit.currentUser?.displayName ?? '',
+        onSave: authCubit.updateDisplayName,
       ),
     );
+
+    if (!mounted) return;
+
+    if (updated == true) {
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Nama profil berhasil diperbarui.')),
+        );
+    }
   }
 
   void _showSetBudgetDialog() {
@@ -169,6 +148,11 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthCubit>().currentUser;
+    final userName = user?.displayName?.trim().isNotEmpty == true
+        ? user!.displayName!
+        : 'Pengguna';
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -215,18 +199,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            _userName,
+                            userName,
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'NIM: $_userNim',
-                            style: const TextStyle(
-                              color: Colors.grey,
-                              fontSize: 13,
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -354,6 +330,127 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _EditProfileDialog extends StatefulWidget {
+  final String initialName;
+  final Future<String?> Function(String name) onSave;
+
+  const _EditProfileDialog({
+    required this.initialName,
+    required this.onSave,
+  });
+
+  @override
+  State<_EditProfileDialog> createState() =>
+      _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  late final TextEditingController _nameController;
+
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: widget.initialName,
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+
+    if (name.isEmpty) {
+      setState(() => _error = 'Nama wajib diisi.');
+      return;
+    }
+
+    if (name.length < 2) {
+      setState(() => _error = 'Nama minimal 2 karakter.');
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final error = await widget.onSave(name);
+
+      if (!mounted) return;
+
+      if (error != null) {
+        setState(() {
+          _saving = false;
+          _error = error;
+        });
+        return;
+      }
+
+      Navigator.of(context).pop(true);
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _saving = false;
+        _error = 'Gagal memperbarui nama. Silakan coba lagi.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Edit Nama Profil'),
+      content: TextField(
+        controller: _nameController,
+        autofocus: true,
+        enabled: !_saving,
+        textCapitalization: TextCapitalization.words,
+        decoration: InputDecoration(
+          labelText: 'Nama Lengkap',
+          hintText: 'Masukkan nama lengkap',
+          prefixIcon: const Icon(Icons.person_outline),
+          errorText: _error,
+        ),
+        onChanged: (_) {
+          if (_error != null) {
+            setState(() => _error = null);
+          }
+        },
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving
+              ? null
+              : () => Navigator.of(context).pop(false),
+          child: const Text('Batal'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text('Simpan'),
+        ),
+      ],
     );
   }
 }
