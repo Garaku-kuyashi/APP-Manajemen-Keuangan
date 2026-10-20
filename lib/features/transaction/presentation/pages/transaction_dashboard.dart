@@ -16,6 +16,7 @@ import '../widgets/dashboard_shared_widgets.dart';
 import '../../domain/entities/transaction_entity.dart';
 import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
+import '../../../wallet/domain/entities/wallet_entity.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
 import '../../../search/presentation/pages/search_page.dart';
 import '../../../wallet/presentation/pages/wallet_page.dart';
@@ -46,6 +47,7 @@ class TransactionDashboard extends StatefulWidget {
 class _TransactionDashboardState extends State<TransactionDashboard> {
   int _navIndex = _Tab.home;
   bool _hideBalance = false;
+  String _selectedWalletId = '';
   final int _monthlyBudgetLimit = 1500000;
 
   @override
@@ -81,8 +83,6 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
       _navIndex = index;
     });
   }
-
-  void _goToWallet() => setState(() => _navIndex = _Tab.wallet);
 
   // =========================================================================
   // HEADER
@@ -134,6 +134,8 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   // =========================================================================
   Widget _buildBalanceCard({
     required int totalBalance,
+    required List<WalletEntity> wallets,
+    required String selectedWalletId,
     required int income,
     required int expense,
     required double? incomeChange,
@@ -159,44 +161,93 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Chip akun + titik tiga
+                // Pilihan dompet untuk saldo yang ditampilkan.
                 Row(
                   children: [
-                    GestureDetector(
-                      onTap: _goToWallet,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.14),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.account_balance_wallet_outlined,
-                              size: 15,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 6),
-                            Text(
-                              'Semua Dompet',
-                              style: TextStyle(
+                    Container(
+                      constraints: const BoxConstraints(maxWidth: 240),
+                      padding: const EdgeInsets.only(left: 10, right: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.account_balance_wallet_outlined,
+                            size: 15,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Flexible(
+                            child: DropdownButton<String>(
+                              value: selectedWalletId,
+                              isDense: true,
+                              underline: const SizedBox.shrink(),
+                              iconEnabledColor: Colors.white,
+                              dropdownColor: colors.card,
+                              menuMaxHeight: 320,
+                              style: const TextStyle(
                                 fontSize: 12,
                                 color: Colors.white,
                               ),
+                              selectedItemBuilder: (context) => [
+                                const Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    'Semua Dompet',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                for (final wallet in wallets)
+                                  Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      wallet.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                              items: [
+                                DropdownMenuItem(
+                                  value: '',
+                                  child: Text(
+                                    'Semua Dompet',
+                                    style: TextStyle(color: colors.textPrimary),
+                                  ),
+                                ),
+                                for (final wallet in wallets)
+                                  DropdownMenuItem(
+                                    value: wallet.id,
+                                    child: Text(
+                                      wallet.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        color: colors.textPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                              onChanged: (walletId) {
+                                if (walletId != null) {
+                                  setState(() => _selectedWalletId = walletId);
+                                }
+                              },
                             ),
-                            SizedBox(width: 2),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
                     const Spacer(),
@@ -567,14 +618,22 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                 }
               }
 
-              // Sisa uang = total saldo semua dompet (sama dengan yang dilihat AI Chat)
               final walletState = context.watch<WalletCubit>().state;
-              final int totalBalance = walletState is WalletSuccess
-                  ? walletState.wallets.fold<int>(
-                      0,
-                      (sum, w) => sum + w.balance,
-                    )
-                  : 0;
+              final wallets = walletState is WalletSuccess
+                  ? walletState.wallets
+                  : const <WalletEntity>[];
+              final selectedWalletId =
+                  wallets.any((wallet) => wallet.id == _selectedWalletId)
+                  ? _selectedWalletId
+                  : '';
+              final selectedWallet = selectedWalletId.isEmpty
+                  ? null
+                  : wallets.firstWhere(
+                      (wallet) => wallet.id == selectedWalletId,
+                    );
+              final totalBalance =
+                  selectedWallet?.balance ??
+                  wallets.fold<int>(0, (sum, wallet) => sum + wallet.balance);
 
               return CustomScrollView(
                 slivers: [
@@ -582,6 +641,8 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                   SliverToBoxAdapter(
                     child: _buildBalanceCard(
                       totalBalance: totalBalance,
+                      wallets: wallets,
+                      selectedWalletId: selectedWalletId,
                       income: income,
                       expense: expense,
                       incomeChange: DashboardCalculator.changePercentage(
@@ -633,9 +694,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                             ),
                             child: Text(
                               'Lihat Semua',
-                              style: TextStyle(
-                                color: AppColors.accentBlue,
-                              ),
+                              style: TextStyle(color: AppColors.accentBlue),
                             ),
                           ),
                         ],
