@@ -47,8 +47,6 @@ app.*.map.json
 # Widget Preview related
 .widget_preview/
 
-lib/core/services/api_config.dart
-
 # API key lokal
 env.json
 

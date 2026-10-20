@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../entities/auth_user.dart';
 
 abstract class AuthRepository {
@@ -22,4 +24,8 @@ abstract class AuthRepository {
   Future<AuthUser?> validateRemoteAccount({bool refreshVerifiedToken = false});
 
   Future<String?> updateDisplayName(String name);
+
+  Future<Uint8List?> getProfilePhoto();
+
+  Future<String?> updatePhoto(Uint8List imageData);
 }

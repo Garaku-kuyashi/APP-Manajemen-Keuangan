@@ -25,7 +25,7 @@ void initDI({
 
   // === AUTH FEATURE ===
   sl.registerLazySingleton<AuthRepository>(
-    () => AuthRepositoryImpl(auth),
+    () => AuthRepositoryImpl(auth, firestore),
   );
 
   // === TRANSACTION FEATURE ===

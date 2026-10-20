@@ -1,5 +1,8 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:mymoney/core/utils/currency_formatter.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 
@@ -43,10 +46,12 @@ class _ProfilePageState extends State<ProfilePage> {
 
     final updated = await showDialog<bool>(
       context: context,
-      barrierDismissible: false,
+      barrierDismissible: true,
       builder: (_) => _EditProfileDialog(
         initialName: authCubit.currentUser?.displayName ?? '',
+        initialPhotoBytes: authCubit.state?.profilePhotoBytes,
         onSave: authCubit.updateDisplayName,
+        onPhotoSelected: authCubit.updatePhoto,
       ),
     );
 
@@ -207,7 +212,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthCubit>().currentUser;
+    final user = context.watch<AuthCubit>().state;
     final userName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : 'Pengguna';
@@ -289,11 +294,7 @@ class _ProfilePageState extends State<ProfilePage> {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    const CircleAvatar(
-                      radius: 32,
-                      backgroundColor: AppColors.accentBlue,
-                      child: Icon(Icons.person, size: 38, color: Colors.white),
-                    ),
+                    _profileAvatar(user?.profilePhotoBytes, 64),
                     const SizedBox(width: 16),
                     Expanded(
                       child: Column(
@@ -513,9 +514,16 @@ class _ProfilePageState extends State<ProfilePage> {
 
 class _EditProfileDialog extends StatefulWidget {
   final String initialName;
+  final Uint8List? initialPhotoBytes;
   final Future<String?> Function(String name) onSave;
+  final Future<String?> Function(Uint8List imageData) onPhotoSelected;
 
-  const _EditProfileDialog({required this.initialName, required this.onSave});
+  const _EditProfileDialog({
+    required this.initialName,
+    required this.initialPhotoBytes,
+    required this.onSave,
+    required this.onPhotoSelected,
+  });
 
   @override
   State<_EditProfileDialog> createState() => _EditProfileDialogState();
@@ -525,12 +533,16 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
   late final TextEditingController _nameController;
 
   bool _saving = false;
+  bool _uploadingPhoto = false;
+  bool _photoSaved = false;
   String? _error;
+  Uint8List? _photoBytes;
 
   @override
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.initialName);
+    _photoBytes = widget.initialPhotoBytes;
   }
 
   @override
@@ -581,6 +593,56 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
     }
   }
 
+  Future<void> _pickPhoto() async {
+    try {
+      final file = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+      if (file == null || !mounted) return;
+
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+      if (bytes.length > 15 * 1024 * 1024) {
+        setState(() => _error = 'Ukuran file gambar maksimal 15 MB.');
+        return;
+      }
+
+      setState(() {
+        _photoBytes = bytes;
+        _uploadingPhoto = true;
+        _photoSaved = false;
+        _error = null;
+      });
+
+      try {
+        final error = await widget.onPhotoSelected(bytes);
+        if (!mounted) return;
+        setState(() {
+          _error = error;
+          _photoSaved = error == null;
+          if (error != null) _photoBytes = null;
+        });
+      } catch (error) {
+        if (!mounted) return;
+        setState(() {
+          _error = 'Foto profil gagal diperbarui: $error';
+          _photoBytes = null;
+        });
+      } finally {
+        if (mounted) setState(() => _uploadingPhoto = false);
+      }
+    } on Exception catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _uploadingPhoto = false;
+        _error = 'Foto gagal dipilih atau diunggah: $error';
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -593,40 +655,80 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       backgroundColor: isDark
           ? AppColors.surface
           : AppColors.lightBackgroundCard,
-      title: Text('Edit Nama Profil', style: TextStyle(color: primaryText)),
-      content: TextField(
-        controller: _nameController,
-        autofocus: true,
-        enabled: !_saving,
-        textCapitalization: TextCapitalization.words,
-        style: TextStyle(color: primaryText),
-        decoration: InputDecoration(
-          labelText: 'Nama Lengkap',
-          hintText: 'Masukkan nama lengkap',
-          prefixIcon: const Icon(Icons.person_outline),
-          errorText: _error,
-          filled: true,
-          fillColor: isDark
-              ? AppColors.background
-              : AppColors.lightInputBackground,
-          labelStyle: TextStyle(color: secondaryText),
-          hintStyle: TextStyle(color: secondaryText),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: BorderSide(
-              color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+      title: Text('Edit Profil', style: TextStyle(color: primaryText)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              _photoBytes == null
+                  ? _profileAvatar(widget.initialPhotoBytes, 88)
+                  : ClipOval(
+                      child: Image.memory(
+                        _photoBytes!,
+                        width: 88,
+                        height: 88,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+              IconButton.filled(
+                tooltip: 'Pilih foto profil',
+                onPressed: _uploadingPhoto || _saving ? null : _pickPhoto,
+                icon: _uploadingPhoto
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.camera_alt_outlined, size: 18),
+              ),
+            ],
+          ),
+          if (_photoSaved)
+            const Padding(
+              padding: EdgeInsets.only(top: 8),
+              child: Text(
+                'Foto profil berhasil diperbarui.',
+                style: TextStyle(color: AppColors.positive, fontSize: 12),
+              ),
             ),
+          const SizedBox(height: 20),
+          TextField(
+            controller: _nameController,
+            autofocus: true,
+            enabled: !_saving && !_uploadingPhoto,
+            textCapitalization: TextCapitalization.words,
+            style: TextStyle(color: primaryText),
+            decoration: InputDecoration(
+              labelText: 'Nama Lengkap',
+              hintText: 'Masukkan nama lengkap',
+              prefixIcon: const Icon(Icons.person_outline),
+              errorText: _error,
+              filled: true,
+              fillColor: isDark
+                  ? AppColors.background
+                  : AppColors.lightInputBackground,
+              labelStyle: TextStyle(color: secondaryText),
+              hintStyle: TextStyle(color: secondaryText),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: const BorderSide(color: AppColors.accentBlue),
+              ),
+            ),
+            onChanged: (_) {
+              if (_error != null) {
+                setState(() => _error = null);
+              }
+            },
           ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(20),
-            borderSide: const BorderSide(color: AppColors.accentBlue),
-          ),
-        ),
-        onChanged: (_) {
-          if (_error != null) {
-            setState(() => _error = null);
-          }
-        },
+        ],
       ),
       actions: [
         TextButton(
@@ -634,8 +736,8 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
           child: const Text('Batal'),
         ),
         FilledButton(
-          onPressed: _saving ? null : _save,
-          child: _saving
+          onPressed: _saving || _uploadingPhoto ? null : _save,
+          child: _saving || _uploadingPhoto
               ? const SizedBox(
                   width: 18,
                   height: 18,
@@ -646,4 +748,28 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       ],
     );
   }
+}
+
+Widget _profileAvatar(Uint8List? photoBytes, double size) {
+  if (photoBytes == null || photoBytes.isEmpty) {
+    return CircleAvatar(
+      radius: size / 2,
+      backgroundColor: AppColors.accentBlue,
+      child: Icon(Icons.person, size: size * 0.6, color: Colors.white),
+    );
+  }
+
+  return ClipOval(
+    child: Image.memory(
+      photoBytes,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => CircleAvatar(
+        radius: size / 2,
+        backgroundColor: AppColors.accentBlue,
+        child: Icon(Icons.person, size: size * 0.6, color: Colors.white),
+      ),
+    ),
+  );
 }

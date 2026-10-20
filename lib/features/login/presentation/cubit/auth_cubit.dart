@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -29,6 +30,8 @@ class AuthCubit extends Cubit<AuthUser?> with WidgetsBindingObserver {
       const Duration(minutes: 5),
       (_) => unawaited(_validateRemoteAccount()),
     );
+    final userId = state?.uid;
+    if (userId != null) unawaited(_loadProfilePhoto(userId));
   }
 
   bool get isLoggedIn => state != null;
@@ -121,8 +124,28 @@ class AuthCubit extends Cubit<AuthUser?> with WidgetsBindingObserver {
 
   void _set(AuthUser? user) {
     if (isClosed) return;
-    emit(user);
+    final current = state;
+    final sameUser = current != null && current.uid == user?.uid;
+    emit(
+      sameUser && user != null
+          ? user.copyWith(profilePhotoBytes: current.profilePhotoBytes)
+          : user,
+    );
     _tick.value++;
+    if (user != null && !sameUser) {
+      unawaited(_loadProfilePhoto(user.uid));
+    }
+  }
+
+  Future<void> _loadProfilePhoto(String userId) async {
+    try {
+      final image = await _authRepository.getProfilePhoto();
+      if (isClosed || state?.uid != userId) return;
+      emit(state!.copyWith(profilePhotoBytes: image));
+      _tick.value++;
+    } catch (error) {
+      debugPrint('Gagal memuat foto profil dari Firestore: $error');
+    }
   }
 
   @override
@@ -146,4 +169,23 @@ class AuthCubit extends Cubit<AuthUser?> with WidgetsBindingObserver {
   }
 
   AuthUser? get currentUser => _authRepository.currentUser;
+
+  Future<bool> ensureVerifiedSession() async {
+    final user = await _authRepository.validateRemoteAccount(
+      refreshVerifiedToken: true,
+    );
+    if (!isClosed) _set(user);
+    if (user?.emailVerified == true) {
+      await _loadProfilePhoto(user!.uid);
+    }
+    return user?.emailVerified == true;
+  }
+
+  Future<String?> updatePhoto(Uint8List imageData) async {
+    final error = await _authRepository.updatePhoto(imageData);
+    if (error == null && state != null) {
+      await _loadProfilePhoto(state!.uid);
+    }
+    return error;
+  }
 }

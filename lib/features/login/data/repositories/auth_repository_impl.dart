@@ -1,13 +1,19 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/utils/profile_photo_compressor.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final firebase.FirebaseAuth _firebaseAuth;
+  final FirebaseFirestore _firestore;
 
-  AuthRepositoryImpl(this._firebaseAuth);
+  AuthRepositoryImpl(this._firebaseAuth, this._firestore);
 
   AuthUser? _toAuthUser(firebase.User? user) {
     if (user == null) return null;
@@ -16,7 +22,6 @@ class AuthRepositoryImpl implements AuthRepository {
       email: user.email,
       displayName: user.displayName,
       emailVerified: user.emailVerified,
-      photoUrl: user.photoURL,
       phoneNumber: user.phoneNumber,
     );
   }
@@ -202,6 +207,72 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (error) {
       debugPrint('Gagal memperbarui nama profil: $error');
       return 'Nama profil gagal diperbarui. Silakan coba lagi.';
+    }
+  }
+
+  @override
+  Future<Uint8List?> getProfilePhoto() async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null || !user.emailVerified) return null;
+
+    final snapshot = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .get()
+        .timeout(const Duration(seconds: 20));
+    final encodedPhoto = snapshot.data()?['profilePhoto'];
+    if (encodedPhoto == null) return null;
+    if (encodedPhoto is! String || encodedPhoto.length > 950000) {
+      throw const FormatException('Invalid profile photo data in Firestore.');
+    }
+    return base64Decode(encodedPhoto);
+  }
+
+  @override
+  Future<String?> updatePhoto(Uint8List imageData) async {
+    try {
+      if (imageData.isEmpty || imageData.length > 15 * 1024 * 1024) {
+        return 'Ukuran file gambar maksimal 15 MB sebelum dikompresi.';
+      }
+
+      final user = _firebaseAuth.currentUser;
+      if (user == null) {
+        return 'Sesi berakhir. Silakan masuk kembali.';
+      }
+      if (!user.emailVerified) {
+        return 'Verifikasi email sebelum mengubah foto profil.';
+      }
+
+      Uint8List encodedBytes;
+      try {
+        encodedBytes = ProfilePhotoCompressor.compress(imageData);
+      } on FormatException {
+        return 'File foto tidak dapat dibaca. Pilih gambar JPG, PNG, atau WebP.';
+      } on StateError {
+        return 'Gambar tidak dapat dikompresi di bawah batas ukuran. Pilih gambar yang lebih kecil.';
+      }
+
+      await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .set({
+            'profilePhoto': base64Encode(encodedBytes),
+          }, SetOptions(merge: true))
+          .timeout(const Duration(seconds: 30));
+
+      return null;
+    } on TimeoutException catch (error) {
+      debugPrint('Waktu simpan foto profil di Firestore habis: $error');
+      return 'Menyimpan foto ke Firestore melewati batas waktu. Periksa koneksi internet lalu coba lagi.';
+    } on firebase.FirebaseAuthException catch (error) {
+      return _errorMessage(error);
+    } on FirebaseException catch (error) {
+      debugPrint('Gagal menyimpan foto profil di Firestore: ${error.code}');
+      return error.message ??
+          'Foto profil gagal disimpan. Periksa koneksi dan aturan Firestore.';
+    } catch (error) {
+      debugPrint('Gagal memperbarui foto profil: $error');
+      return 'Foto profil gagal diperbarui. Silakan coba lagi.';
     }
   }
 }

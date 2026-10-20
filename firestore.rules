@@ -8,6 +8,21 @@ service cloud.firestore {
         && request.auth.token.email_verified == true;
     }
 
+    function validProfilePhoto() {
+      return request.resource.data.keys().hasOnly(['profilePhoto'])
+        && request.resource.data.profilePhoto is string
+        && request.resource.data.profilePhoto.size() <= 950000;
+    }
+
+    match /users/{userId} {
+      allow get: if isVerifiedOwner(userId);
+      allow create: if isVerifiedOwner(userId) && validProfilePhoto();
+      allow update: if isVerifiedOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['profilePhoto'])
+        && validProfilePhoto();
+    }
+
     function validWallet() {
       return request.resource.data.keys().hasAll(['name', 'balance', 'iconName'])
         && request.resource.data.name is string

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -15,7 +17,6 @@ import '../../domain/entities/transaction_entity.dart';
 import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
-import 'transaction_form_page.dart';
 import '../../../search/presentation/pages/search_page.dart';
 import '../../../wallet/presentation/pages/wallet_page.dart';
 import '../../../report/presentation/pages/report_page.dart';
@@ -50,8 +51,24 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   @override
   void initState() {
     super.initState();
-    context.read<TransactionCubit>().loadTransactions();
-    context.read<WalletCubit>().loadWallets();
+    unawaited(_loadInitialData());
+  }
+
+  Future<void> _loadInitialData() async {
+    try {
+      final sessionReady = await context
+          .read<AuthCubit>()
+          .ensureVerifiedSession();
+      if (!mounted || !sessionReady) return;
+    } catch (error) {
+      debugPrint('Gagal menyegarkan sesi sebelum memuat dashboard: $error');
+    }
+
+    if (!mounted) return;
+    await Future.wait([
+      context.read<TransactionCubit>().loadTransactions(),
+      context.read<WalletCubit>().loadWallets(),
+    ]);
   }
 
   void _onNavigationSelected(int index) {
@@ -71,6 +88,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   // HEADER
   // =========================================================================
   Widget _buildHeader(DashboardColors colors, String username) {
+    final photoBytes = context.watch<AuthCubit>().state?.profilePhotoBytes;
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
       child: Row(
@@ -80,7 +98,12 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
             backgroundColor: AppColors.accentBlue.withOpacity(
               colors.isDark ? 0.20 : 0.12,
             ),
-            child: const Icon(AppIcons.profile, color: AppColors.accentBlue),
+            backgroundImage: photoBytes == null || photoBytes.isEmpty
+                ? null
+                : MemoryImage(photoBytes),
+            child: photoBytes == null || photoBytes.isEmpty
+                ? const Icon(AppIcons.profile, color: AppColors.accentBlue)
+                : null,
           ),
           const SizedBox(width: 12),
           Column(
@@ -177,11 +200,6 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                       ),
                     ),
                     const Spacer(),
-                    const Icon(
-                      Icons.more_vert,
-                      color: Colors.white70,
-                      size: 20,
-                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -423,7 +441,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                     );
 
                     return Container(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
                       decoration: BoxDecoration(
                         color: colors.card,
                         borderRadius: BorderRadius.circular(16),
@@ -494,78 +512,6 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                   ? AppColors.positive
                                   : AppColors.negative,
                             ),
-                          ),
-                          PopupMenuButton<String>(
-                            padding: EdgeInsets.zero,
-                            color: colors.popupBackground,
-                            surfaceTintColor: Colors.transparent,
-                            icon: Icon(
-                              Icons.more_vert,
-                              size: 18,
-                              color: colors.textSecondary,
-                            ),
-                            onSelected: (value) async {
-                              if (value == 'edit') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => TransactionFormPage(
-                                      initialTransaction: item,
-                                    ),
-                                  ),
-                                );
-                              } else if (value == 'delete') {
-                                // kembalikan saldo dompet sebelum transaksi dihapus
-                                final walletCubit = context.read<WalletCubit>();
-                                final txCubit = context
-                                    .read<TransactionCubit>();
-                                await walletCubit.adjustBalance(
-                                  item.walletId,
-                                  isIncome ? -item.amount : item.amount,
-                                );
-                                txCubit.delete(item.id);
-                              }
-                            },
-                            itemBuilder: (_) => [
-                              PopupMenuItem(
-                                value: 'edit',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      AppIcons.edit,
-                                      size: 18,
-                                      color: AppColors.accentBlue,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Ubah',
-                                      style: TextStyle(
-                                        color: colors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              PopupMenuItem(
-                                value: 'delete',
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      AppIcons.delete,
-                                      size: 18,
-                                      color: AppColors.negative,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Hapus',
-                                      style: TextStyle(
-                                        color: colors.textPrimary,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
                           ),
                         ],
                       ),
@@ -767,7 +713,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   // =========================================================================
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthCubit>().currentUser;
+    final user = context.watch<AuthCubit>().state;
     final userName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : 'Pengguna';
