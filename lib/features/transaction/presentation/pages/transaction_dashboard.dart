@@ -5,7 +5,9 @@ import 'package:mymoney/core/di/theme/app_colors.dart';
 import 'package:mymoney/core/utils/currency_formatter.dart';
 import 'package:mymoney/core/utils/dashboard_calculator.dart';
 import 'package:mymoney/core/utils/dashboard_date_formatter.dart';
+import 'package:mymoney/features/chat/presentation/cubit/conversation_cubit.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
+
 import '../theme/dashboard_theme.dart';
 import '../widgets/dashboard_shared_widgets.dart';
 
@@ -14,6 +16,7 @@ import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
 import 'transaction_form_page.dart';
+import '../../../search/presentation/pages/search_page.dart';
 import '../../../wallet/presentation/pages/wallet_page.dart';
 import '../../../report/presentation/pages/report_page.dart';
 import '../../../chat/presentation/pages/chat_page.dart';
@@ -29,7 +32,7 @@ class _Tab {
   static const chat = 1;
   static const report = 2;
   static const profile = 3;
-  static const wallet = 4; // dibuka lewat chip "Semua Dompet" di kartu saldo
+  static const wallet = 4;
 }
 
 class TransactionDashboard extends StatefulWidget {
@@ -51,6 +54,17 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
     context.read<WalletCubit>().loadWallets();
   }
 
+  void _onNavigationSelected(int index) {
+    // Reset status ketika meninggalkan tab AI Chat.
+    if (_navIndex == _Tab.chat && index != _Tab.chat) {
+      context.read<ConversationCubit>().resetConversation();
+    }
+
+    setState(() {
+      _navIndex = index;
+    });
+  }
+
   void _goToWallet() => setState(() => _navIndex = _Tab.wallet);
 
   // =========================================================================
@@ -63,7 +77,9 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
         children: [
           CircleAvatar(
             radius: 22,
-            backgroundColor: AppColors.accentBlue.withOpacity(colors.isDark ? 0.20 : 0.12),
+            backgroundColor: AppColors.accentBlue.withOpacity(
+              colors.isDark ? 0.20 : 0.12,
+            ),
             child: const Icon(AppIcons.profile, color: AppColors.accentBlue),
           ),
           const SizedBox(width: 12),
@@ -183,11 +199,15 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          _hideBalance ? 'Rp ••••••' : CurrencyFormatter.format(totalBalance),
+                          _hideBalance
+                              ? 'Rp ••••••'
+                              : CurrencyFormatter.format(totalBalance),
                           style: TextStyle(
                             fontSize: 34,
                             fontWeight: FontWeight.bold,
-                            color: totalBalance >= 0 ? Colors.white : AppColors.negative,
+                            color: totalBalance >= 0
+                                ? Colors.white
+                                : AppColors.negative,
                           ),
                         ),
                       ),
@@ -317,10 +337,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
               Flexible(
                 child: Text.rich(
                   TextSpan(
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: colors.textSecondary,
-                    ),
+                    style: TextStyle(fontSize: 12, color: colors.textSecondary),
                     children: [
                       const TextSpan(text: 'Terpakai '),
                       TextSpan(
@@ -330,7 +347,10 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                           color: colors.textPrimary,
                         ),
                       ),
-                      TextSpan(text: ' / ${CurrencyFormatter.format(_monthlyBudgetLimit)}'),
+                      TextSpan(
+                        text:
+                            ' / ${CurrencyFormatter.format(_monthlyBudgetLimit)}',
+                      ),
                     ],
                   ),
                 ),
@@ -353,7 +373,11 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   // =========================================================================
   // RIWAYAT TRANSAKSI
   // =========================================================================
-  Widget _buildTransactionSliver(BuildContext context, TransactionState state, DashboardColors colors) {
+  Widget _buildTransactionSliver(
+    BuildContext context,
+    TransactionState state,
+    DashboardColors colors,
+  ) {
     return switch (state) {
       DataInitial() => const SliverToBoxAdapter(
         child: Padding(
@@ -384,13 +408,19 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
             : SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 sliver: SliverList.separated(
-                  itemCount: transactions.length,
+                  itemCount: transactions.length > 10
+                      ? 10
+                      : transactions.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 10),
                   itemBuilder: (context, index) {
                     final item = transactions[index];
                     final isIncome = item.type == TransactionType.income;
-                    final accent = isIncome ? AppColors.positive : AppColors.negative;
-                    final accentBg = accent.withOpacity(colors.isDark ? 0.18 : 0.12);
+                    final accent = isIncome
+                        ? AppColors.positive
+                        : AppColors.negative;
+                    final accentBg = accent.withOpacity(
+                      colors.isDark ? 0.18 : 0.12,
+                    );
 
                     return Container(
                       padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
@@ -460,7 +490,9 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              color: isIncome ? AppColors.positive : AppColors.negative,
+                              color: isIncome
+                                  ? AppColors.positive
+                                  : AppColors.negative,
                             ),
                           ),
                           PopupMenuButton<String>(
@@ -507,7 +539,9 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                     SizedBox(width: 8),
                                     Text(
                                       'Ubah',
-                                      style: TextStyle(color: colors.textPrimary),
+                                      style: TextStyle(
+                                        color: colors.textPrimary,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -524,7 +558,9 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                                     SizedBox(width: 8),
                                     Text(
                                       'Hapus',
-                                      style: TextStyle(color: colors.textPrimary),
+                                      style: TextStyle(
+                                        color: colors.textPrimary,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -543,12 +579,17 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   // =========================================================================
   // KONTEN DASHBOARD
   // =========================================================================
-  Widget _buildDashboard(BuildContext context, DashboardColors colors, String userName) {
+  Widget _buildDashboard(
+    BuildContext context,
+    DashboardColors colors,
+    String userName,
+  ) {
     return Theme(
       data: dashboardThemeOf(context, colors),
       child: ColoredBox(
         color: colors.background,
         child: SafeArea(
+          bottom: false,
           child: BlocBuilder<TransactionCubit, TransactionState>(
             builder: (context, state) {
               // Hitung pemasukan/pengeluaran bulan ini & bulan lalu
@@ -597,27 +638,61 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                       totalBalance: totalBalance,
                       income: income,
                       expense: expense,
-                      incomeChange: DashboardCalculator.changePercentage(income, prevIncome),
-                      expenseChange: DashboardCalculator.changePercentage(expense, prevExpense),
+                      incomeChange: DashboardCalculator.changePercentage(
+                        income,
+                        prevIncome,
+                      ),
+                      expenseChange: DashboardCalculator.changePercentage(
+                        expense,
+                        prevExpense,
+                      ),
                       colors: colors,
                     ),
                   ),
                   SliverToBoxAdapter(child: _buildBudgetCard(expense, colors)),
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                      child: Text(
-                        'Riwayat Transaksi',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: colors.textPrimary,
-                        ),
+                      padding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              'Riwayat Transaksi',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: colors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const SearchPage(),
+                                ),
+                              );
+                            },
+                            style: TextButton.styleFrom(
+                              foregroundColor: colors.isDark
+                                  ? AppColors.accentBlue
+                                  : AppColors.navyBlue,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text('Lihat Semua'),
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   _buildTransactionSliver(context, state, colors),
-                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                  const SliverToBoxAdapter(child: SizedBox(height: 96)),
                 ],
               );
             },
@@ -634,6 +709,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
     return BottomAppBar(
       color: colors.navigationBar,
       surfaceTintColor: Colors.transparent,
+      elevation: 0,
       height: 72,
       padding: EdgeInsets.zero,
       shape: const CircularNotchedRectangle(),
@@ -647,7 +723,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
               label: 'Home',
               selected: _navIndex == _Tab.home,
               unselectedColor: colors.textSecondary,
-              onTap: () => setState(() => _navIndex = _Tab.home),
+              onTap: () => _onNavigationSelected(0),
             ),
           ),
           Expanded(
@@ -657,19 +733,18 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
               label: 'AI Chat',
               selected: _navIndex == _Tab.chat,
               unselectedColor: colors.textSecondary,
-              onTap: () => setState(() => _navIndex = _Tab.chat),
+              onTap: () => _onNavigationSelected(1),
             ),
           ),
           const SizedBox(width: 72), // ruang untuk tombol tambah
           Expanded(
             child: DashboardNavItem(
-              icon:
-                  Icons.insert_chart_outlined_rounded, // belum dipilih: outline
-              activeIcon: Icons.insert_chart_rounded, // dipilih: filled
+              icon: Icons.insert_chart_outlined_rounded,
+              activeIcon: Icons.insert_chart_rounded,
               label: 'Report',
               selected: _navIndex == _Tab.report,
               unselectedColor: colors.textSecondary,
-              onTap: () => setState(() => _navIndex = _Tab.report),
+              onTap: () => _onNavigationSelected(2),
             ),
           ),
           Expanded(
@@ -679,7 +754,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
               label: 'Profile',
               selected: _navIndex == _Tab.profile,
               unselectedColor: colors.textSecondary,
-              onTap: () => setState(() => _navIndex = _Tab.profile),
+              onTap: () => _onNavigationSelected(3),
             ),
           ),
         ],
@@ -696,7 +771,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
     final userName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : 'Pengguna';
-    
+
     final colors = DashboardColors.from(context);
     final isMobile = MediaQuery.sizeOf(context).width < 600;
     final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
@@ -738,62 +813,84 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
       ),
     ];
 
-    return PopScope(
-      // Tombol back dari tab lain kembali ke Home dulu
-      canPop: _navIndex == _Tab.home,
-      onPopInvokedWithResult: (didPop, _) {
-        if (!didPop) setState(() => _navIndex = _Tab.home);
-      },
-      child: Scaffold(
-        backgroundColor: colors.background,
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-        floatingActionButton: (isMobile && !keyboardOpen)
-            ? FloatingActionButton(
-                onPressed: () => context.push('/form'),
-                backgroundColor: AppColors.accentBlue,
-                foregroundColor: Colors.white,
-                shape: const CircleBorder(),
-                child: const Icon(AppIcons.add),
-              )
-            : null,
-        body: isMobile
-            ? activeBody
-            : Row(
-                children: [
-                  NavigationRail(
-                    backgroundColor: colors.background,
-                    selectedIconTheme: const IconThemeData(
-                      color: AppColors.accentBlue,
-                    ),
-                    unselectedIconTheme: IconThemeData(
-                      color: colors.textSecondary,
-                    ),
-                    selectedLabelTextStyle: const TextStyle(
-                      color: AppColors.accentBlue,
-                    ),
-                    unselectedLabelTextStyle: TextStyle(
-                      color: colors.textSecondary,
-                    ),
-                    selectedIndex: _navIndex,
-                    labelType: NavigationRailLabelType.all,
-                    onDestinationSelected: (val) =>
-                        setState(() => _navIndex = val),
-                    leading: Padding(
-                      padding: const EdgeInsets.only(top: 8, bottom: 8),
-                      child: FloatingActionButton(
-                        backgroundColor: AppColors.accentBlue,
-                        foregroundColor: Colors.white,
-                        onPressed: () => context.push('/form'),
-                        child: const Icon(AppIcons.add),
+    return BlocBuilder<ConversationCubit, bool>(
+      builder: (context, conversationStarted) {
+        return PopScope(
+          canPop: _navIndex == _Tab.home,
+          onPopInvokedWithResult: (didPop, _) {
+            if (!didPop) {
+              if (_navIndex == _Tab.chat) {
+                context.read<ConversationCubit>().resetConversation();
+              }
+
+              setState(() {
+                _navIndex = _Tab.home;
+              });
+            }
+          },
+          child: Scaffold(
+            backgroundColor: colors.background,
+            extendBody: isMobile,
+
+            floatingActionButtonLocation:
+                FloatingActionButtonLocation.miniCenterDocked,
+
+            floatingActionButton:
+                (isMobile &&
+                    !keyboardOpen &&
+                    (_navIndex != _Tab.chat || !conversationStarted))
+                ? FloatingActionButton(
+                    onPressed: () => context.push('/form'),
+                    backgroundColor: AppColors.accentBlue,
+                    foregroundColor: Colors.white,
+                    shape: const CircleBorder(),
+                    elevation: 0,
+                    child: const Icon(AppIcons.add),
+                  )
+                : null,
+
+            body: isMobile
+                ? activeBody
+                : Row(
+                    children: [
+                      NavigationRail(
+                        backgroundColor: colors.background,
+                        selectedIconTheme: const IconThemeData(
+                          color: AppColors.accentBlue,
+                        ),
+                        unselectedIconTheme: IconThemeData(
+                          color: colors.textSecondary,
+                        ),
+                        selectedLabelTextStyle: const TextStyle(
+                          color: AppColors.accentBlue,
+                        ),
+                        unselectedLabelTextStyle: TextStyle(
+                          color: colors.textSecondary,
+                        ),
+                        selectedIndex: _navIndex,
+                        labelType: NavigationRailLabelType.all,
+                        onDestinationSelected: _onNavigationSelected,
+
+                        // FAB desktop tetap tampil.
+                        leading: Padding(
+                          padding: const EdgeInsets.only(top: 8, bottom: 8),
+                          child: FloatingActionButton(
+                            backgroundColor: AppColors.accentBlue,
+                            foregroundColor: Colors.white,
+                            onPressed: () => context.push('/form'),
+                            child: const Icon(AppIcons.add),
+                          ),
+                        ),
+                        destinations: railItems,
                       ),
-                    ),
-                    destinations: railItems,
+                      Expanded(child: activeBody),
+                    ],
                   ),
-                  Expanded(child: activeBody),
-                ],
-              ),
-        bottomNavigationBar: isMobile ? _buildBottomBar(colors) : null,
-      ),
+
+            bottomNavigationBar: isMobile ? _buildBottomBar(colors) : null,
+          ),
+        );
+      },
     );
   }
 }

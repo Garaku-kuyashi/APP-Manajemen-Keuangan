@@ -6,6 +6,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:mymoney/core/di/theme/app_theme.dart';
+import 'package:mymoney/features/chat/presentation/cubit/conversation_cubit.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 import 'package:mymoney/features/login/domain/repositories/auth_repository.dart';
 import 'package:mymoney/features/login/presentation/auth_routes.dart';
@@ -63,6 +64,7 @@ class MyMoneyApp extends StatelessWidget {
         BlocProvider<AuthCubit>.value(value: authCubit),
         BlocProvider<TransactionCubit>(create: (_) => sl<TransactionCubit>()),
         BlocProvider<WalletCubit>(create: (_) => sl<WalletCubit>()),
+        BlocProvider<ConversationCubit>(create: (_) => ConversationCubit()),
         BlocProvider<ThemeCubit>(
           create: (_) => ThemeCubit(),
         ), // Tambahkan ThemeCubit

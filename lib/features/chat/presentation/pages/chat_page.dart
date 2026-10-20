@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mymoney/features/chat/presentation/cubit/conversation_cubit.dart';
 
 import '../../../../core/di/theme/app_colors.dart';
 import '../../../../core/services/gemini_ai_service.dart';
@@ -207,10 +208,16 @@ class _ChatPageState extends State<ChatPage> {
                 tooltip: 'Daftar topik',
                 onPressed: _isSending
                     ? null
-                    : () => setState(() {
-                        _activeTopicId = null;
-                        _isCreatingTopic = false;
-                      }),
+                    : () {
+                        // Reset status percakapan pada Cubit.
+                        context.read<ConversationCubit>().resetConversation();
+
+                        // Kembali ke daftar topik.
+                        setState(() {
+                          _activeTopicId = null;
+                          _isCreatingTopic = false;
+                        });
+                      },
                 icon: const Icon(Icons.arrow_back),
               )
             : null,
@@ -298,7 +305,10 @@ class _ChatPageState extends State<ChatPage> {
                       backgroundColor: AppColors.accentBlue,
                       foregroundColor: Colors.white,
                     ),
-                    onPressed: _startNewTopic,
+                    onPressed: () {
+                      context.read<ConversationCubit>().startConversation();
+                      _startNewTopic();
+                    },
                     icon: const Icon(Icons.add),
                     label: const Text('Mulai percakapan'),
                   ),
