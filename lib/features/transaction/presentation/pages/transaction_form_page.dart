@@ -76,13 +76,36 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
+        builder: (dialogContext, setDialogState) {
+          final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+          final dialogBackground = isDark
+              ? AppColors.surface
+              : AppColors.lightBackgroundCard;
+          final primaryText = isDark
+              ? AppColors.textPrimary
+              : AppColors.primaryText;
+          final secondaryText = isDark
+              ? AppColors.textSecondary
+              : AppColors.secondaryText;
+          final inputBackground = isDark
+              ? AppColors.background
+              : AppColors.lightInputBackground;
+          final borderColor = isDark
+              ? AppColors.darkBorder
+              : AppColors.lightBorder;
+
           return AlertDialog(
-            title: const Row(
+            backgroundColor: dialogBackground,
+            title: Row(
               children: [
-                Icon(AppIcons.aiActive, color: AppColors.accentBlue),
-                SizedBox(width: 8),
-                Text('Gemini AI Express Input'),
+                const Icon(AppIcons.aiActive, color: AppColors.accentBlue),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Gemini AI Express Input',
+                    style: TextStyle(color: primaryText),
+                  ),
+                ),
               ],
             ),
             content: Column(
@@ -91,18 +114,36 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                 TextField(
                   controller: promptCtrl,
                   enabled: !isLoading,
-                  decoration: const InputDecoration(
+                  style: TextStyle(color: primaryText),
+                  decoration: InputDecoration(
                     hintText: 'Bebas, misal: kopi 18rb pakai gopay / gajian 2jt masuk bca',
-                    border: OutlineInputBorder(),
+                    hintStyle: TextStyle(color: secondaryText),
+                    filled: true,
+                    fillColor: inputBackground,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: borderColor),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(
+                        color: AppColors.accentBlue,
+                        width: 1.2,
+                      ),
+                    ),
                   ),
                 ),
                 if (isLoading) ...[
                   const SizedBox(height: 16),
-                  const LinearProgressIndicator(),
+                  const LinearProgressIndicator(color: AppColors.accentBlue),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Gemini sedang menganalisis & menyimpan...',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                    style: TextStyle(fontSize: 12, color: secondaryText),
                   ),
                 ],
               ],
@@ -145,7 +186,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                               content: Text(
                                 'Aku belum nemu nominalnya. Coba tulis harganya ya, misal "kopi 18rb pakai gopay".',
                               ),
-                              backgroundColor: Colors.orange,
+                              backgroundColor: AppColors.negative,
                             ),
                           );
                           return;
@@ -157,7 +198,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           );
         },
       ),
-    );
+    ).whenComplete(promptCtrl.dispose);
   }
 
   /// Saves the parsed transaction using one of the user's existing wallets.
@@ -171,7 +212,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       messenger.showSnackBar(
         const SnackBar(
           content: Text('Data dompet belum siap, coba lagi.'),
-          backgroundColor: Colors.orange,
+          backgroundColor: AppColors.accentBlue,
         ),
       );
       return;
@@ -195,7 +236,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     );
     if (balanceError != null) {
       messenger.showSnackBar(
-        SnackBar(content: Text(balanceError), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(balanceError),
+          backgroundColor: AppColors.negative,
+        ),
       );
       return;
     }
@@ -224,7 +268,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Pilih sumber dompet terlebih dahulu!'),
-            backgroundColor: Colors.orange,
+            backgroundColor: AppColors.accentBlue,
           ),
         );
         return;
@@ -244,7 +288,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       );
       if (balanceError != null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(balanceError), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(balanceError),
+            backgroundColor: AppColors.negative,
+          ),
         );
         return;
       }
@@ -273,10 +320,80 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final pageBackground = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final navigationColor = isDark
+        ? AppColors.surface
+        : AppColors.lightNavigation;
+    final cardColor = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final inputBackground = isDark
+        ? AppColors.background
+        : AppColors.lightInputBackground;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+
+              final backgrodunColor = isDark
+              ? AppColors.accentBlue
+              : AppColors.navyBlue;
+
+    InputDecoration fieldDecoration({
+      required String labelText,
+      String? hintText,
+    }) {
+      return InputDecoration(
+        labelText: labelText,
+        hintText: hintText,
+        labelStyle: TextStyle(color: secondaryText),
+        hintStyle: TextStyle(color: secondaryText),
+        filled: true,
+        fillColor: inputBackground,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: borderColor),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.accentBlue, width: 1.2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.negative),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.negative, width: 1.2),
+        ),
+      );
+    }
+
     return Scaffold(
+      backgroundColor: pageBackground,
       appBar: AppBar(
-        title: Text(
-          _isEditMode ? 'Edit Transaksi' : 'Catat Keuangan Mahasiswa',
+        title: Padding(
+          padding: const EdgeInsets.only(left: 4),
+          child: Text(
+            _isEditMode ? 'Edit Transaksi' : 'Catat Keuangan Mahasiswa',
+            style: TextStyle(color: primaryText),
+          ),
+        ),
+        backgroundColor: navigationColor,
+        foregroundColor: primaryText,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(height: 1, color: borderColor),
         ),
       ),
       body: BlocListener<TransactionCubit, TransactionState>(
@@ -289,7 +406,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                       ? 'Transaksi berhasil diperbarui!'
                       : 'Transaksi berhasil dicatat!',
                 ),
-                backgroundColor: Colors.green,
+                backgroundColor: AppColors.positive,
               ),
             );
             context.pop();
@@ -297,7 +414,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
-                backgroundColor: Colors.red,
+                backgroundColor: AppColors.negative,
               ),
             );
           }
@@ -322,7 +439,8 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                       ),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size(double.infinity, 48),
-                        side: const BorderSide(color: Colors.purpleAccent),
+                        foregroundColor: AppColors.accentBlue,
+                        side: const BorderSide(color: AppColors.accentBlue),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -333,15 +451,29 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                       ButtonSegment(
                         value: TransactionType.expense,
                         label: Text('Pengeluaran'),
-                        icon: Icon(AppIcons.expense, color: Colors.redAccent),
+                        icon: Icon(AppIcons.expense, color: AppColors.negative),
                       ),
                       ButtonSegment(
                         value: TransactionType.income,
                         label: Text('Pemasukan'),
-                        icon: Icon(AppIcons.income, color: Colors.greenAccent),
+                        icon: Icon(AppIcons.income, color: AppColors.positive),
                       ),
                     ],
                     selected: {_selectedType},
+                    style: ButtonStyle(
+                      foregroundColor: WidgetStatePropertyAll(primaryText),
+                      backgroundColor: WidgetStateProperty.resolveWith((
+                        states,
+                      ) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppColors.accentBlue.withOpacity(0.16);
+                        }
+                        return cardColor;
+                      }),
+                      side: WidgetStatePropertyAll(
+                        BorderSide(color: borderColor),
+                      ),
+                    ),
                     onSelectionChanged: (Set<TransactionType> newSelection) {
                       setState(() {
                         _selectedType = newSelection.first;
@@ -352,10 +484,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
                   TextFormField(
                     controller: _titleCtrl,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: primaryText),
+                    decoration: fieldDecoration(
                       labelText: 'Nama Transaksi',
                       hintText: 'Misal: ChatGPT Plus / Kopi Kenangan',
-                      border: OutlineInputBorder(),
                     ),
                     validator: (val) => (val == null || val.trim().isEmpty)
                         ? 'Nama transaksi wajib diisi!'
@@ -365,10 +497,10 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
                   TextFormField(
                     controller: _amountCtrl,
-                    decoration: const InputDecoration(
+                    style: TextStyle(color: primaryText),
+                    decoration: fieldDecoration(
                       labelText: 'Nominal (Rp)',
                       hintText: 'Misal: 50000',
-                      border: OutlineInputBorder(),
                     ),
                     keyboardType: TextInputType.number,
                     validator: (val) {
@@ -398,10 +530,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
 
                   DropdownButtonFormField<String>(
                     initialValue: _selectedCategory,
-                    decoration: const InputDecoration(
-                      labelText: 'Kategori Keuangan',
-                      border: OutlineInputBorder(),
-                    ),
+                    style: TextStyle(color: primaryText),
+                    dropdownColor: cardColor,
+                    decoration: fieldDecoration(labelText: 'Kategori Keuangan'),
                     items: _categories.map((cat) {
                       return DropdownMenuItem(value: cat, child: Text(cat));
                     }).toList(),
@@ -432,14 +563,18 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         }
                         return DropdownButtonFormField<WalletEntity>(
                           initialValue: _selectedWallet,
-                          decoration: const InputDecoration(
+                          style: TextStyle(color: primaryText),
+                          dropdownColor: cardColor,
+                          decoration: fieldDecoration(
                             labelText: 'Sumber Dompet / Kas',
-                            border: OutlineInputBorder(),
                           ),
                           items: state.wallets.map((w) {
                             return DropdownMenuItem(
                               value: w,
-                              child: Text('${w.name} (Saldo: Rp ${w.balance})'),
+                              child: Text(
+                                '${w.name} (Saldo: Rp ${w.balance})',
+                                style: TextStyle(color: primaryText),
+                              ),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -449,7 +584,9 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                           },
                         );
                       }
-                      return const LinearProgressIndicator();
+                      return const LinearProgressIndicator(
+                        color: AppColors.accentBlue,
+                      );
                     },
                   ),
                   const SizedBox(height: 24),
@@ -461,11 +598,19 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                       builder: (context, state) {
                         if (state is DataLoading) {
                           return const Center(
-                            child: CircularProgressIndicator.adaptive(),
+                            child: CircularProgressIndicator.adaptive(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.accentBlue,
+                              ),
+                            ),
                           );
                         }
                         return FilledButton.icon(
                           onPressed: _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: backgrodunColor,
+                            foregroundColor: Colors.white,
+                          ),
                           icon: Icon(
                             _isEditMode ? AppIcons.edit : AppIcons.save,
                           ),
