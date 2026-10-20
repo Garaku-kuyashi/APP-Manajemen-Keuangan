@@ -42,15 +42,13 @@ class _WalletPageState extends State<WalletPage> {
         final dialogBackground =
             isDark ? AppColors.surface : AppColors.lightBackgroundCard;
         final pageBackground =
-            isDark ? AppColors.darkBackground : AppColors.lightInputBackground;
+            isDark ? AppColors.surface : AppColors.lightBackgroundCard;
         final primaryText =
             isDark ? AppColors.textPrimary : AppColors.primaryText;
         final secondaryText =
             isDark ? AppColors.textSecondary : AppColors.secondaryText;
         final borderColor =
             isDark ? AppColors.darkBorder : AppColors.lightBorder;
-        final buttonColor =
-            isDark ? AppColors.accentBlue : AppColors.navyBlue;
 
         return AlertDialog(
           backgroundColor: dialogBackground,
@@ -127,11 +125,11 @@ class _WalletPageState extends State<WalletPage> {
                 foregroundColor: AppColors.accentBlue,
               ),
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal'),
+              child: const Text('Batal', style: TextStyle(color: AppColors.negative)),
             ),
             FilledButton(
               style: FilledButton.styleFrom(
-                backgroundColor: buttonColor,
+                backgroundColor: AppColors.accentBlue,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
@@ -233,7 +231,6 @@ class _WalletPageState extends State<WalletPage> {
             child: IconButton(
               tooltip: 'Tambah Dompet',
               icon: const Icon(Icons.add_card),
-              color: primaryText,
               onPressed: () => _showWalletDialog(),
             ),
           ),
@@ -320,7 +317,7 @@ class _WalletPageState extends State<WalletPage> {
                                 : AppColors.lightNavigation,
                             child: Icon(
                               AppIcons.walletActive,
-                              color: accentColor,
+                              color: AppColors.accentBlue,
                             ),
                           ),
                           title: Text(
@@ -345,7 +342,7 @@ class _WalletPageState extends State<WalletPage> {
                               IconButton(
                                 tooltip: 'Edit Dompet',
                                 icon: const Icon(AppIcons.edit),
-                                color: accentColor,
+                                color: AppColors.accentBlue,
                                 onPressed: () =>
                                     _showWalletDialog(wallet: item),
                               ),

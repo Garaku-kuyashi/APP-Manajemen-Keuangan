@@ -186,7 +186,7 @@ class _ChatPageState extends State<ChatPage> {
     final pageBackground = isDark
         ? AppColors.darkBackground
         : AppColors.lightBackground;
-    final appBarColor = isDark
+    final navigationColor = isDark
         ? AppColors.surface
         : AppColors.lightBackgroundCard;
     final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
@@ -195,7 +195,7 @@ class _ChatPageState extends State<ChatPage> {
     return Scaffold(
       backgroundColor: pageBackground,
       appBar: AppBar(
-        backgroundColor: appBarColor,
+        backgroundColor: navigationColor,
         foregroundColor: primaryText,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
@@ -381,8 +381,8 @@ class _ChatPageState extends State<ChatPage> {
         ? AppColors.textSecondary
         : AppColors.secondaryText;
     final inputBackground = isDark
-        ? AppColors.background
-        : AppColors.lightInputBackground;
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return Column(

@@ -88,8 +88,8 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               ? AppColors.textSecondary
               : AppColors.secondaryText;
           final inputBackground = isDark
-              ? AppColors.background
-              : AppColors.lightInputBackground;
+              ? AppColors.surface
+              : AppColors.lightBackgroundCard;
           final borderColor = isDark
               ? AppColors.darkBorder
               : AppColors.lightBorder;
@@ -121,15 +121,15 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                     filled: true,
                     fillColor: inputBackground,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(color: borderColor),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: const BorderSide(
                         color: AppColors.accentBlue,
                         width: 1.2,
@@ -326,7 +326,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         : AppColors.lightBackground;
     final navigationColor = isDark
         ? AppColors.surface
-        : AppColors.lightNavigation;
+        : AppColors.lightBackgroundCard;
     final cardColor = isDark
         ? AppColors.surface
         : AppColors.lightBackgroundCard;
@@ -339,10 +339,6 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         : AppColors.secondaryText;
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
-              final backgrodunColor = isDark
-              ? AppColors.accentBlue
-              : AppColors.navyBlue;
-
     InputDecoration fieldDecoration({
       required String labelText,
       String? hintText,
@@ -352,26 +348,25 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         hintText: hintText,
         labelStyle: TextStyle(color: secondaryText),
         hintStyle: TextStyle(color: secondaryText),
-        filled: true,
         fillColor: inputBackground,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide(color: borderColor),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: BorderSide(color: borderColor),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.accentBlue, width: 1.2),
         ),
         errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.negative),
         ),
         focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(20),
           borderSide: const BorderSide(color: AppColors.negative, width: 1.2),
         ),
       );
@@ -381,7 +376,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
       backgroundColor: pageBackground,
       appBar: AppBar(
         title: Padding(
-          padding: const EdgeInsets.only(left: 4),
+          padding: const EdgeInsets.only(left: 8),
           child: Text(
             _isEditMode ? 'Edit Transaksi' : 'Catat Keuangan Mahasiswa',
             style: TextStyle(color: primaryText),
@@ -447,15 +442,15 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   ],
 
                   SegmentedButton<TransactionType>(
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: TransactionType.expense,
-                        label: Text('Pengeluaran'),
+                        label: Text('Pengeluaran', style: TextStyle(color: primaryText)),
                         icon: Icon(AppIcons.expense, color: AppColors.negative),
                       ),
                       ButtonSegment(
                         value: TransactionType.income,
-                        label: Text('Pemasukan'),
+                        label: Text('Pemasukan', style: TextStyle(color: primaryText),),
                         icon: Icon(AppIcons.income, color: AppColors.positive),
                       ),
                     ],
@@ -466,7 +461,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         states,
                       ) {
                         if (states.contains(WidgetState.selected)) {
-                          return AppColors.accentBlue.withOpacity(0.16);
+                          return isDark ? AppColors.accentBlue : AppColors.lightInputBackground;
                         }
                         return cardColor;
                       }),
@@ -608,7 +603,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                         return FilledButton.icon(
                           onPressed: _submit,
                           style: FilledButton.styleFrom(
-                            backgroundColor: backgrodunColor,
+                            backgroundColor: AppColors.accentBlue,
                             foregroundColor: Colors.white,
                           ),
                           icon: Icon(

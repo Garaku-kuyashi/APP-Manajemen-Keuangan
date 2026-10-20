@@ -94,8 +94,8 @@ class _ProfilePageState extends State<ProfilePage> {
               hintText: 'Misal: 2000000',
               filled: true,
               fillColor: isDark
-                  ? AppColors.background
-                  : AppColors.lightInputBackground,
+                  ? AppColors.surface
+                  : AppColors.lightBackgroundCard,
               labelStyle: TextStyle(
                 color: isDark
                     ? AppColors.textSecondary
@@ -123,9 +123,16 @@ class _ProfilePageState extends State<ProfilePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Batal'),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: AppColors.negative),
+              ),
             ),
             FilledButton(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.accentBlue,
+                foregroundColor: Colors.white,
+              ),
               onPressed: () {
                 final newBudget = int.tryParse(budgetCtrl.text.trim());
                 if (newBudget != null) {
@@ -188,9 +195,13 @@ class _ProfilePageState extends State<ProfilePage> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Tutup'),
+                child: const Text('Batal', style: TextStyle(color: AppColors.negative)),
               ),
               FilledButton.icon(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.accentBlue,
+                  foregroundColor: Colors.white,
+                ),
                 onPressed: () {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -707,8 +718,8 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
               errorText: _error,
               filled: true,
               fillColor: isDark
-                  ? AppColors.background
-                  : AppColors.lightInputBackground,
+                  ? AppColors.surface
+                  : AppColors.lightBackgroundCard,
               labelStyle: TextStyle(color: secondaryText),
               hintStyle: TextStyle(color: secondaryText),
               enabledBorder: OutlineInputBorder(
@@ -733,9 +744,16 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
-          child: const Text('Batal'),
+          child: const Text(
+            'Batal',
+            style: TextStyle(color: AppColors.negative),
+          ),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.accentBlue,
+            foregroundColor: Colors.white,
+          ),
           onPressed: _saving || _uploadingPhoto ? null : _save,
           child: _saving || _uploadingPhoto
               ? const SizedBox(

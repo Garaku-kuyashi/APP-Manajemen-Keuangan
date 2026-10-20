@@ -631,7 +631,12 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text('Lihat Semua'),
+                            child: Text(
+                              'Lihat Semua',
+                              style: TextStyle(
+                                color: AppColors.accentBlue,
+                              ),
+                            ),
                           ),
                         ],
                       ),

@@ -33,16 +33,15 @@ class _SearchPageState extends State<SearchPage> {
         isDark ? AppColors.darkBackground : AppColors.lightBackground;
     final surfaceColor =
         isDark ? AppColors.surface : AppColors.lightBackgroundCard;
-    final inputColor =
-        isDark ? AppColors.background : AppColors.lightInputBackground;
+    final inputBackground = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
     final primaryText =
         isDark ? AppColors.textPrimary : AppColors.primaryText;
     final secondaryText =
         isDark ? AppColors.textSecondary : AppColors.secondaryText;
     final borderColor =
         isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final accentColor =
-        isDark ? AppColors.accentBlue : AppColors.navyBlue;
 
     return Scaffold(
       backgroundColor: pageBackground,
@@ -71,25 +70,31 @@ class _SearchPageState extends State<SearchPage> {
               child: TextField(
                 controller: _searchCtrl,
                 style: TextStyle(color: primaryText),
-                cursorColor: accentColor,
+                cursorColor: AppColors.accentBlue,
                 decoration: InputDecoration(
                   labelText: 'Pencarian',
                   hintText: 'Cari transaksi: ChatGPT, Kopi, Spotify...',
                   labelStyle: TextStyle(color: secondaryText),
                   hintStyle: TextStyle(color: secondaryText),
-                  prefixIcon: Icon(Icons.search, color: accentColor),
+                  prefixIcon: Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: Icon(Icons.search, color: AppColors.accentBlue),
+                  ),
                   suffixIcon: _query.isNotEmpty
-                      ? IconButton(
-                          tooltip: 'Hapus pencarian',
-                          icon: Icon(Icons.clear, color: secondaryText),
-                          onPressed: () {
-                            _searchCtrl.clear();
-                            setState(() => _query = '');
-                          },
-                        )
+                      ? Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: IconButton(
+                            tooltip: 'Hapus pencarian',
+                            icon: Icon(Icons.clear, color: secondaryText),
+                            onPressed: () {
+                              _searchCtrl.clear();
+                              setState(() => _query = '');
+                            },
+                          ),
+                      )
                       : null,
                   filled: true,
-                  fillColor: inputColor,
+                  fillColor: inputBackground,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide(color: borderColor),
@@ -100,7 +105,7 @@ class _SearchPageState extends State<SearchPage> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: accentColor, width: 1.5),
+                    borderSide: BorderSide(color: AppColors.accentBlue, width: 1.5),
                   ),
                 ),
                 onChanged: (value) {
@@ -115,7 +120,7 @@ class _SearchPageState extends State<SearchPage> {
                 builder: (context, state) {
                   if (state is DataInitial || state is DataLoading) {
                     return Center(
-                      child: CircularProgressIndicator(color: accentColor),
+                      child: CircularProgressIndicator(color: AppColors.accentBlue),
                     );
                   }
 
