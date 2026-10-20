@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:mymoney/core/utils/currency_formatter.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 
 import '../../../../core/di/theme/app_colors.dart';
@@ -9,6 +10,7 @@ import '../../../transaction/presentation/cubit/transaction_cubit.dart';
 import '../../../transaction/presentation/cubit/transaction_state.dart';
 import '../../../wallet/presentation/cubit/wallet_cubit.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
+import '../../../wallet/presentation/pages/wallet_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -423,12 +425,15 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
 
             const SizedBox(height: 20),
-            Text(
-              'Manajemen Keuangan',
-              style: TextStyle(
-                color: primaryText,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            Padding(
+              padding: EdgeInsets.only(left: 4),
+              child: Text(
+                'Manajemen Keuangan',
+                style: TextStyle(
+                  color: primaryText,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
             const SizedBox(height: 8),
@@ -444,6 +449,26 @@ class _ProfilePageState extends State<ProfilePage> {
               child: Column(
                 children: [
                   ListTile(
+                    leading: Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: AppColors.accentBlue,
+                    ),
+                    title: Text(
+                      'Kelola Dompet',
+                      style: TextStyle(color: primaryText),
+                    ),
+                    subtitle: Text(
+                      'Lihat dan atur dompet keuangan Anda',
+                      style: TextStyle(color: secondaryText),
+                    ),
+                    trailing: Icon(Icons.chevron_right, color: secondaryText),
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const WalletPage()),
+                    ),
+                  ),
+                  Divider(height: 1, color: dividerColor),
+                  ListTile(
                     leading: const Icon(
                       Icons.track_changes,
                       color: AppColors.accentBlue,
@@ -453,7 +478,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: TextStyle(color: primaryText),
                     ),
                     subtitle: Text(
-                      'Target: Rp $_userBudget / bulan',
+                      'Target: ${CurrencyFormatter.format(_userBudget)} / bulan',
                       style: TextStyle(color: secondaryText),
                     ),
                     trailing: Icon(Icons.chevron_right, color: secondaryText),
