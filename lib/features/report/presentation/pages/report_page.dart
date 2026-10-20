@@ -151,7 +151,7 @@ class ReportPage extends StatelessWidget {
                                 : borderColor,
                             width: isCritical ? 1.2 : 1,
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -276,7 +276,7 @@ class ReportPage extends StatelessWidget {
                             color: surfaceColor,
                             shape: RoundedRectangleBorder(
                               side: BorderSide(color: borderColor),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: Padding(
                               padding: const EdgeInsets.all(16),
@@ -329,7 +329,7 @@ class ReportPage extends StatelessWidget {
                         color: surfaceColor,
                         shape: RoundedRectangleBorder(
                           side: BorderSide(color: borderColor),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -409,7 +409,7 @@ class ReportPage extends StatelessWidget {
                             margin: const EdgeInsets.only(bottom: 8),
                             shape: RoundedRectangleBorder(
                               side: BorderSide(color: borderColor),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(20),
                             ),
                             child: ListTile(
                               leading: CircleAvatar(

@@ -314,7 +314,7 @@ class _ChatPageState extends State<ChatPage> {
               color: cardColor,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: borderColor),
               ),
               clipBehavior: Clip.antiAlias,
@@ -468,22 +468,22 @@ class _ChatPageState extends State<ChatPage> {
                       vertical: 12,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(color: borderColor),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(color: borderColor),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: const BorderSide(
                         color: AppColors.accentBlue,
                         width: 1.5,
                       ),
                     ),
                     disabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       borderSide: BorderSide(color: borderColor),
                     ),
                   ),
@@ -531,7 +531,7 @@ class _ChatPageState extends State<ChatPage> {
         decoration: BoxDecoration(
           color: bubbleColor,
           border: bubbleBorder,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(20),
         ),
         child: Text(message.text, style: TextStyle(color: textColor)),
       ),

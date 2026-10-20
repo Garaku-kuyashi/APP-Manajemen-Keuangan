@@ -102,13 +102,13 @@ class _ProfilePageState extends State<ProfilePage> {
                     : AppColors.secondaryText,
               ),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide(
                   color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 borderSide: BorderSide(
                   color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
                 ),
@@ -282,7 +282,7 @@ class _ProfilePageState extends State<ProfilePage> {
               color: cardColor,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: borderColor, width: 1),
               ),
               child: Padding(
@@ -348,7 +348,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: cardColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       side: BorderSide(color: borderColor, width: 1),
                     ),
                     child: Padding(
@@ -387,7 +387,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     color: cardColor,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(20),
                       side: BorderSide(color: borderColor, width: 1),
                     ),
                     child: Padding(
@@ -442,7 +442,7 @@ class _ProfilePageState extends State<ProfilePage> {
               color: cardColor,
               elevation: 0,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(20),
                 side: BorderSide(color: borderColor, width: 1),
               ),
               clipBehavior: Clip.antiAlias,
@@ -612,13 +612,13 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
           labelStyle: TextStyle(color: secondaryText),
           hintStyle: TextStyle(color: secondaryText),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             borderSide: BorderSide(
               color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
             ),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(20),
             borderSide: const BorderSide(color: AppColors.accentBlue),
           ),
         ),

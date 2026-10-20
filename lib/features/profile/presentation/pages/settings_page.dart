@@ -66,7 +66,7 @@ class SettingsPage extends StatelessWidget {
                   color: cardColor,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     side: BorderSide(color: borderColor, width: 1),
                   ),
                   clipBehavior: Clip.antiAlias,
@@ -109,7 +109,7 @@ class SettingsPage extends StatelessWidget {
                   color: cardColor,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(20),
                     side: BorderSide(color: borderColor, width: 1),
                   ),
                   clipBehavior: Clip.antiAlias,

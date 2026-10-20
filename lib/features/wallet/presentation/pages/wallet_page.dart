@@ -74,11 +74,11 @@ class _WalletPageState extends State<WalletPage> {
                   filled: true,
                   fillColor: pageBackground,
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide(color: borderColor),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: const BorderSide(
                       color: AppColors.accentBlue,
                       width: 1.5,
@@ -103,15 +103,15 @@ class _WalletPageState extends State<WalletPage> {
                   filled: true,
                   fillColor: pageBackground,
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide(color: borderColor),
                   ),
                   disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide(color: borderColor),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(20),
                     borderSide: const BorderSide(
                       color: AppColors.accentBlue,
                       width: 1.5,
@@ -302,7 +302,7 @@ class _WalletPageState extends State<WalletPage> {
                         elevation: 0,
                         margin: const EdgeInsets.only(bottom: 12),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(20),
                           side: BorderSide(
                             color: borderColor,
                             width: 1,
