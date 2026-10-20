@@ -231,10 +231,13 @@ class _ChatPageState extends State<ChatPage> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Topik baru',
-            onPressed: _isSending ? null : _startNewTopic,
-            icon: const Icon(Icons.add_comment_outlined),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: IconButton(
+              tooltip: 'Topik baru',
+              onPressed: _isSending ? null : _startNewTopic,
+              icon: const Icon(Icons.add_comment_outlined),
+            ),
           ),
         ],
       ),
