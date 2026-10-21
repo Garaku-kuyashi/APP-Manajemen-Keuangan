@@ -209,10 +209,8 @@ class _ChatPageState extends State<ChatPage> {
                 onPressed: _isSending
                     ? null
                     : () {
-                        // Reset status percakapan pada Cubit.
                         context.read<ConversationCubit>().resetConversation();
 
-                        // Kembali ke daftar topik.
                         setState(() {
                           _activeTopicId = null;
                           _isCreatingTopic = false;
@@ -242,7 +240,15 @@ class _ChatPageState extends State<ChatPage> {
             padding: const EdgeInsets.only(right: 12),
             child: IconButton(
               tooltip: 'Topik baru',
-              onPressed: _isSending ? null : _startNewTopic,
+              onPressed: _isSending
+                  ? null
+                  : () {
+                      context.read<ConversationCubit>().startConversation();
+                      setState(() {
+                        _activeTopicId = null;
+                        _isCreatingTopic = true;
+                      });
+                    },
               icon: const Icon(Icons.add_comment_outlined),
             ),
           ),

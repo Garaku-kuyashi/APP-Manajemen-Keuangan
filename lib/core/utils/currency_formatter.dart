@@ -7,7 +7,15 @@ class CurrencyFormatter {
     decimalDigits: 0,
   );
 
+  static final NumberFormat _formatterWithoutSymbol = NumberFormat.decimalPattern(
+    'id_ID',
+  );
+
   static String format(num amount) {
     return _formatter.format(amount);
+  }
+
+  static String formatWithoutSymbol(num amount) {
+    return _formatterWithoutSymbol.format(amount);
   }
 }

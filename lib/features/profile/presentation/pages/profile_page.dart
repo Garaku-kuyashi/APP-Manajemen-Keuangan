@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mymoney/core/utils/currency_formatter.dart';
+import 'package:mymoney/core/utils/text_input_formatter.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
 
 import '../../../../core/di/theme/app_colors.dart';
@@ -67,59 +68,82 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showSetBudgetDialog() {
-    final budgetCtrl = TextEditingController(text: _userBudget.toString());
+    final budgetCtrl = TextEditingController(text: CurrencyFormatter.formatWithoutSymbol(_userBudget));
 
     showDialog(
       context: context,
       builder: (ctx) {
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
+
         return AlertDialog(
           backgroundColor: isDark
               ? AppColors.surface
               : AppColors.lightBackgroundCard,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+
           title: Text(
             'Atur Batas Anggaran Bulanan',
             style: TextStyle(
               color: isDark ? AppColors.textPrimary : AppColors.primaryText,
             ),
           ),
-          content: TextField(
-            controller: budgetCtrl,
-            keyboardType: TextInputType.number,
-            style: TextStyle(
-              color: isDark ? AppColors.textPrimary : AppColors.primaryText,
-            ),
-            decoration: InputDecoration(
-              labelText: 'Batas Budget (Rp)',
-              hintText: 'Misal: 2000000',
-              filled: true,
-              fillColor: isDark
-                  ? AppColors.surface
-                  : AppColors.lightBackgroundCard,
-              labelStyle: TextStyle(
-                color: isDark
-                    ? AppColors.textSecondary
-                    : AppColors.secondaryText,
-              ),
-              hintStyle: TextStyle(
-                color: isDark
-                    ? AppColors.textSecondary
-                    : AppColors.secondaryText,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+
+          content: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: 400, maxWidth: 440),
+            child: SingleChildScrollView(
+              child: TextField(
+                maxLength: 14,
+                inputFormatters: [RupiahInputFormatter()],
+                controller: budgetCtrl,
+                keyboardType: TextInputType.number,
+                style: TextStyle(
+                  color: isDark ? AppColors.textPrimary : AppColors.primaryText,
                 ),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                decoration: InputDecoration(
+                  labelText: 'Batas Budget (Rp)',
+                  hintText: 'Misal: 2000000',
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.surface
+                      : AppColors.lightBackgroundCard,
+                  labelStyle: TextStyle(
+                    color: isDark
+                        ? AppColors.textSecondary
+                        : AppColors.secondaryText,
+                  ),
+                  hintStyle: TextStyle(
+                    color: isDark
+                        ? AppColors.textSecondary
+                        : AppColors.secondaryText,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(color: AppColors.accentBlue),
+                  ),
                 ),
               ),
             ),
           ),
+
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -135,8 +159,10 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
               onPressed: () {
                 final newBudget = int.tryParse(budgetCtrl.text.trim());
+
                 if (newBudget != null) {
                   setState(() => _userBudget = newBudget);
+
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text(
@@ -146,6 +172,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     ),
                   );
                 }
+
                 Navigator.pop(ctx);
               },
               child: const Text('Simpan'),
@@ -172,30 +199,46 @@ class _ProfilePageState extends State<ProfilePage> {
         context: context,
         builder: (dialogCtx) {
           final isDark = Theme.of(dialogCtx).brightness == Brightness.dark;
+
           return AlertDialog(
             backgroundColor: isDark
                 ? AppColors.surface
                 : AppColors.lightBackgroundCard,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+
             title: Text(
               'Ekspor Data Transaksi (CSV)',
               style: TextStyle(
                 color: isDark ? AppColors.textPrimary : AppColors.primaryText,
               ),
             ),
-            content: SingleChildScrollView(
-              child: SelectableText(
-                csvData,
-                style: TextStyle(
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  color: isDark ? AppColors.textPrimary : AppColors.primaryText,
+
+            content: ConstrainedBox(
+              constraints: BoxConstraints(minWidth: 400, maxWidth: 440),
+              child: SingleChildScrollView(
+                child: SelectableText(
+                  csvData,
+                  style: TextStyle(
+                    fontFamily: 'monospace',
+                    fontSize: 12,
+                    color: isDark
+                        ? AppColors.textPrimary
+                        : AppColors.primaryText,
+                  ),
                 ),
               ),
             ),
+
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(dialogCtx),
-                child: const Text('Batal', style: TextStyle(color: AppColors.negative)),
+                child: const Text(
+                  'Batal',
+                  style: TextStyle(color: AppColors.negative),
+                ),
               ),
               FilledButton.icon(
                 style: FilledButton.styleFrom(
@@ -666,81 +709,99 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
       backgroundColor: isDark
           ? AppColors.surface
           : AppColors.lightBackgroundCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+
       title: Text('Edit Profil', style: TextStyle(color: primaryText)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            alignment: Alignment.bottomRight,
+
+      content: ConstrainedBox(
+        constraints: BoxConstraints(minWidth: 400, maxWidth: 440),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _photoBytes == null
-                  ? _profileAvatar(widget.initialPhotoBytes, 88)
-                  : ClipOval(
-                      child: Image.memory(
-                        _photoBytes!,
-                        width: 88,
-                        height: 88,
-                        fit: BoxFit.cover,
-                      ),
+              Stack(
+                alignment: Alignment.bottomRight,
+                children: [
+                  _photoBytes == null
+                      ? _profileAvatar(widget.initialPhotoBytes, 88)
+                      : ClipOval(
+                          child: Image.memory(
+                            _photoBytes!,
+                            width: 88,
+                            height: 88,
+                            fit: BoxFit.cover,
+                          ),
+                        ),
+                  IconButton.filled(
+                    tooltip: 'Pilih foto profil',
+                    onPressed: _uploadingPhoto || _saving ? null : _pickPhoto,
+                    icon: _uploadingPhoto
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Icon(Icons.camera_alt_outlined, size: 18),
+                  ),
+                ],
+              ),
+
+              if (_photoSaved)
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    'Foto profil berhasil diperbarui.',
+                    style: TextStyle(color: AppColors.positive, fontSize: 12),
+                  ),
+                ),
+
+              const SizedBox(height: 28),
+
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                enabled: !_saving && !_uploadingPhoto,
+                textCapitalization: TextCapitalization.words,
+                style: TextStyle(color: primaryText),
+                decoration: InputDecoration(
+                  labelText: 'Nama Lengkap',
+                  hintText: 'Masukkan nama lengkap',
+                  prefixIcon: const Icon(Icons.person_outline),
+                  errorText: _error,
+                  filled: true,
+                  fillColor: isDark
+                      ? AppColors.surface
+                      : AppColors.lightBackgroundCard,
+                  labelStyle: TextStyle(color: secondaryText),
+                  hintStyle: TextStyle(color: secondaryText),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: BorderSide(
+                      color: isDark
+                          ? AppColors.darkBorder
+                          : AppColors.lightBorder,
                     ),
-              IconButton.filled(
-                tooltip: 'Pilih foto profil',
-                onPressed: _uploadingPhoto || _saving ? null : _pickPhoto,
-                icon: _uploadingPhoto
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.camera_alt_outlined, size: 18),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(20),
+                    borderSide: const BorderSide(color: AppColors.accentBlue),
+                  ),
+                ),
+                onChanged: (_) {
+                  if (_error != null) {
+                    setState(() => _error = null);
+                  }
+                },
               ),
             ],
           ),
-          if (_photoSaved)
-            const Padding(
-              padding: EdgeInsets.only(top: 8),
-              child: Text(
-                'Foto profil berhasil diperbarui.',
-                style: TextStyle(color: AppColors.positive, fontSize: 12),
-              ),
-            ),
-          const SizedBox(height: 20),
-          TextField(
-            controller: _nameController,
-            autofocus: true,
-            enabled: !_saving && !_uploadingPhoto,
-            textCapitalization: TextCapitalization.words,
-            style: TextStyle(color: primaryText),
-            decoration: InputDecoration(
-              labelText: 'Nama Lengkap',
-              hintText: 'Masukkan nama lengkap',
-              prefixIcon: const Icon(Icons.person_outline),
-              errorText: _error,
-              filled: true,
-              fillColor: isDark
-                  ? AppColors.surface
-                  : AppColors.lightBackgroundCard,
-              labelStyle: TextStyle(color: secondaryText),
-              hintStyle: TextStyle(color: secondaryText),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: BorderSide(
-                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(20),
-                borderSide: const BorderSide(color: AppColors.accentBlue),
-              ),
-            ),
-            onChanged: (_) {
-              if (_error != null) {
-                setState(() => _error = null);
-              }
-            },
-          ),
-        ],
+        ),
       ),
+
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(false),
@@ -759,7 +820,10 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
               ? const SizedBox(
                   width: 18,
                   height: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
                 )
               : const Text('Simpan'),
         ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mymoney/core/di/theme/app_colors.dart';
+import 'package:mymoney/core/utils/text_input_formatter.dart';
 
 import '../../../../core/services/gemini_ai_service.dart';
 import '../../../../core/di/theme/app_icons.dart';
@@ -491,11 +492,13 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   const SizedBox(height: 16),
 
                   TextFormField(
+                    maxLength: 14,
+                    inputFormatters: [RupiahInputFormatter()],
                     controller: _amountCtrl,
                     style: TextStyle(color: primaryText),
                     decoration: fieldDecoration(
                       labelText: 'Nominal (Rp)',
-                      hintText: 'Misal: 50000',
+                      hintText: 'Misal: 50.000',
                     ),
                     keyboardType: TextInputType.number,
                     validator: (val) {

@@ -1,7 +1,7 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mymoney/core/utils/currency_formatter.dart';
+import 'package:mymoney/core/utils/text_input_formatter.dart';
 
 import '../../../../core/di/theme/app_colors.dart';
 import '../../../../core/di/theme/app_icons.dart';
@@ -30,111 +30,134 @@ class _WalletPageState extends State<WalletPage> {
     final isEdit = wallet != null;
     final nameCtrl = TextEditingController(text: wallet?.name ?? '');
     final balanceCtrl = TextEditingController(
-      text: wallet != null ? wallet.balance.toString() : '',
+      text: wallet != null ? CurrencyFormatter.formatWithoutSymbol(wallet.balance) : '',
     );
 
     showDialog(
       context: context,
       builder: (dialogContext) {
-        final isDark =
-            Theme.of(dialogContext).brightness == Brightness.dark;
+        final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
 
-        final dialogBackground =
-            isDark ? AppColors.surface : AppColors.lightBackgroundCard;
-        final pageBackground =
-            isDark ? AppColors.surface : AppColors.lightBackgroundCard;
-        final primaryText =
-            isDark ? AppColors.textPrimary : AppColors.primaryText;
-        final secondaryText =
-            isDark ? AppColors.textSecondary : AppColors.secondaryText;
-        final borderColor =
-            isDark ? AppColors.darkBorder : AppColors.lightBorder;
+        final dialogBackground = isDark
+            ? AppColors.surface
+            : AppColors.lightBackgroundCard;
+        final pageBackground = isDark
+            ? AppColors.surface
+            : AppColors.lightBackgroundCard;
+        final primaryText = isDark
+            ? AppColors.textPrimary
+            : AppColors.primaryText;
+        final secondaryText = isDark
+            ? AppColors.textSecondary
+            : AppColors.secondaryText;
+        final borderColor = isDark
+            ? AppColors.darkBorder
+            : AppColors.lightBorder;
 
         return AlertDialog(
           backgroundColor: dialogBackground,
           surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+
           title: Text(
             isEdit ? 'Edit Dompet' : 'Tambah Dompet Baru',
-            style: TextStyle(
-              color: primaryText,
-              fontWeight: FontWeight.bold,
+            style: TextStyle(color: primaryText, fontWeight: FontWeight.bold),
+          ),
+
+          content: ConstrainedBox(
+            constraints: BoxConstraints(
+              minWidth: 360,
+              maxWidth: 440,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameCtrl,
+                    style: TextStyle(color: primaryText),
+                    decoration: InputDecoration(
+                      labelText: 'Nama Dompet',
+                      labelStyle: TextStyle(color: secondaryText),
+                      filled: true,
+                      fillColor: pageBackground,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: const BorderSide(
+                          color: AppColors.accentBlue,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  TextField(
+                    maxLength: 14,
+                    inputFormatters: isEdit ? [] : [RupiahInputFormatter()],
+                    controller: balanceCtrl,
+                    keyboardType: TextInputType.number,
+                    enabled: !isEdit,
+                    style: TextStyle(color: primaryText),
+                    decoration: InputDecoration(
+                      labelText: isEdit
+                          ? 'Saldo saat ini (Rp)'
+                          : 'Saldo awal (Rp)',
+                      helperText: isEdit
+                          ? 'Saldo berubah melalui pencatatan transaksi.'
+                          : null,
+                      labelStyle: TextStyle(color: secondaryText),
+                      helperStyle: TextStyle(color: secondaryText),
+                      filled: true,
+                      fillColor: pageBackground,
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      disabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: BorderSide(color: borderColor),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(20),
+                        borderSide: const BorderSide(
+                          color: AppColors.accentBlue,
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameCtrl,
-                style: TextStyle(color: primaryText),
-                decoration: InputDecoration(
-                  labelText: 'Nama Dompet',
-                  labelStyle: TextStyle(color: secondaryText),
-                  filled: true,
-                  fillColor: pageBackground,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(
-                      color: AppColors.accentBlue,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: balanceCtrl,
-                keyboardType: TextInputType.number,
-                enabled: !isEdit,
-                style: TextStyle(color: primaryText),
-                decoration: InputDecoration(
-                  labelText:
-                      isEdit ? 'Saldo saat ini (Rp)' : 'Saldo awal (Rp)',
-                  helperText: isEdit
-                      ? 'Saldo berubah melalui pencatatan transaksi.'
-                      : null,
-                  labelStyle: TextStyle(color: secondaryText),
-                  helperStyle: TextStyle(color: secondaryText),
-                  filled: true,
-                  fillColor: pageBackground,
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  disabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(color: borderColor),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(
-                      color: AppColors.accentBlue,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+
           actions: [
             TextButton(
               style: TextButton.styleFrom(
                 foregroundColor: AppColors.accentBlue,
               ),
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Batal', style: TextStyle(color: AppColors.negative)),
+              child: const Text(
+                'Batal',
+                style: TextStyle(color: AppColors.negative),
+              ),
             ),
+
             FilledButton(
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.accentBlue,
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                final balance =
-                    int.tryParse(balanceCtrl.text.trim());
+                final balance = int.tryParse(balanceCtrl.text.trim());
 
                 if (nameCtrl.text.trim().isEmpty ||
                     balance == null ||
@@ -156,13 +179,10 @@ class _WalletPageState extends State<WalletPage> {
                 final walletData = WalletEntity(
                   id: isEdit
                       ? wallet.id
-                      : DateTime.now()
-                          .microsecondsSinceEpoch
-                          .toString(),
+                      : DateTime.now().microsecondsSinceEpoch.toString(),
                   name: nameCtrl.text.trim(),
                   balance: balance,
-                  iconName:
-                      wallet?.iconName ?? 'account_balance_wallet',
+                  iconName: wallet?.iconName ?? 'account_balance_wallet',
                 );
 
                 if (isEdit) {
@@ -186,32 +206,28 @@ class _WalletPageState extends State<WalletPage> {
   // =========================================================
   @override
   Widget build(BuildContext context) {
-    final isDark =
-        Theme.of(context).brightness == Brightness.dark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     // Warna dinamis berdasarkan tema aktif.
-    final pageBackground =
-        isDark ? AppColors.darkBackground : AppColors.lightBackground;
-    final surfaceColor =
-        isDark ? AppColors.surface : AppColors.lightBackgroundCard;
-    final primaryText =
-        isDark ? AppColors.textPrimary : AppColors.primaryText;
-    final secondaryText =
-        isDark ? AppColors.textSecondary : AppColors.secondaryText;
-    final borderColor =
-        isDark ? AppColors.darkBorder : AppColors.lightBorder;
-    final accentColor =
-        isDark ? AppColors.accentBlue : AppColors.navyBlue;
+    final pageBackground = isDark
+        ? AppColors.darkBackground
+        : AppColors.lightBackground;
+    final surfaceColor = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+    final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
+    final accentColor = isDark ? AppColors.accentBlue : AppColors.navyBlue;
 
     return Scaffold(
       backgroundColor: pageBackground,
       appBar: AppBar(
         title: Text(
           'Dompet & Kas Mahasiswa',
-          style: TextStyle(
-            color: primaryText,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: primaryText, fontWeight: FontWeight.bold),
         ),
         backgroundColor: surfaceColor,
         foregroundColor: primaryText,
@@ -220,10 +236,7 @@ class _WalletPageState extends State<WalletPage> {
         iconTheme: IconThemeData(color: primaryText),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: borderColor,
-          ),
+          child: Container(height: 1, color: borderColor),
         ),
         actions: [
           Padding(
@@ -240,126 +253,120 @@ class _WalletPageState extends State<WalletPage> {
         builder: (context, state) {
           return switch (state) {
             WalletInitial() => Center(
-                child: Text(
-                  'Memuat Dompet...',
-                  style: TextStyle(color: secondaryText),
-                ),
+              child: Text(
+                'Memuat Dompet...',
+                style: TextStyle(color: secondaryText),
               ),
+            ),
             WalletLoading() => Center(
-                child: CircularProgressIndicator(
-                  color: accentColor,
-                ),
-              ),
+              child: CircularProgressIndicator(color: accentColor),
+            ),
             WalletError(:final message) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'Galat: $message',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.negative),
-                  ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(
+                  'Galat: $message',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.negative),
                 ),
               ),
-            WalletSuccess(:final wallets) => wallets.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          AppIcons.walletActive,
-                          size: 48,
-                          color: secondaryText,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          'Belum ada dompet.',
-                          style: TextStyle(color: secondaryText),
-                        ),
-                        const SizedBox(height: 12),
-                        FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: accentColor,
-                            foregroundColor: Colors.white,
+            ),
+            WalletSuccess(:final wallets) =>
+              wallets.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            AppIcons.walletActive,
+                            size: 48,
+                            color: secondaryText,
                           ),
-                          onPressed: () => _showWalletDialog(),
-                          icon: const Icon(Icons.add),
-                          label: const Text('Tambah Dompet'),
-                        ),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: wallets.length,
-                    itemBuilder: (context, index) {
-                      final item = wallets[index];
+                          const SizedBox(height: 12),
+                          Text(
+                            'Belum ada dompet.',
+                            style: TextStyle(color: secondaryText),
+                          ),
+                          const SizedBox(height: 12),
+                          FilledButton.icon(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: accentColor,
+                              foregroundColor: Colors.white,
+                            ),
+                            onPressed: () => _showWalletDialog(),
+                            icon: const Icon(Icons.add),
+                            label: const Text('Tambah Dompet'),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: wallets.length,
+                      itemBuilder: (context, index) {
+                        final item = wallets[index];
 
-                      return Card(
-                        color: surfaceColor,
-                        elevation: 0,
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          side: BorderSide(
-                            color: borderColor,
-                            width: 1,
+                        return Card(
+                          color: surfaceColor,
+                          elevation: 0,
+                          margin: const EdgeInsets.only(bottom: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(color: borderColor, width: 1),
                           ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 6,
-                          ),
-                          leading: CircleAvatar(
-                            backgroundColor: isDark
-                                ? AppColors.darkNavigation
-                                : AppColors.lightNavigation,
-                            child: Icon(
-                              AppIcons.walletActive,
-                              color: AppColors.accentBlue,
+                          clipBehavior: Clip.antiAlias,
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 6,
                             ),
-                          ),
-                          title: Text(
-                            item.name,
-                            style: TextStyle(
-                              color: primaryText,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              'Saldo: ${CurrencyFormatter.format(item.balance)}',
-                              style: TextStyle(
-                                color: secondaryText,
-                              ),
-                            ),
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: 'Edit Dompet',
-                                icon: const Icon(AppIcons.edit),
+                            leading: CircleAvatar(
+                              backgroundColor: isDark
+                                  ? AppColors.darkNavigation
+                                  : AppColors.lightNavigation,
+                              child: Icon(
+                                AppIcons.walletActive,
                                 color: AppColors.accentBlue,
-                                onPressed: () =>
-                                    _showWalletDialog(wallet: item),
                               ),
-                              IconButton(
-                                tooltip: 'Hapus Dompet',
-                                icon: const Icon(AppIcons.delete),
-                                color: AppColors.negative,
-                                onPressed: () => context
-                                    .read<WalletCubit>()
-                                    .delete(item.id),
+                            ),
+                            title: Text(
+                              item.name,
+                              style: TextStyle(
+                                color: primaryText,
+                                fontWeight: FontWeight.bold,
                               ),
-                            ],
+                            ),
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: Text(
+                                'Saldo: ${CurrencyFormatter.format(item.balance)}',
+                                style: TextStyle(color: secondaryText),
+                              ),
+                            ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  tooltip: 'Edit Dompet',
+                                  icon: const Icon(AppIcons.edit),
+                                  color: AppColors.accentBlue,
+                                  onPressed: () =>
+                                      _showWalletDialog(wallet: item),
+                                ),
+                                IconButton(
+                                  tooltip: 'Hapus Dompet',
+                                  icon: const Icon(AppIcons.delete),
+                                  color: AppColors.negative,
+                                  onPressed: () => context
+                                      .read<WalletCubit>()
+                                      .delete(item.id),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
           };
         },
       ),
