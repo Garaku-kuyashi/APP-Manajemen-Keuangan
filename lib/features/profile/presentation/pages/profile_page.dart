@@ -255,7 +255,7 @@ class _ProfilePageState extends State<ProfilePage> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(12),
           children: [
             // KARTU PROFIL INTERAKTIF
             Card(

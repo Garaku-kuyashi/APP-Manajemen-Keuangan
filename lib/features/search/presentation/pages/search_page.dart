@@ -66,7 +66,7 @@ class _SearchPageState extends State<SearchPage> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               child: TextField(
                 controller: _searchCtrl,
                 style: TextStyle(color: primaryText),
@@ -173,7 +173,7 @@ class _SearchPageState extends State<SearchPage> {
                     }
 
                     return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                       itemCount: filtered.length,
                       separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
