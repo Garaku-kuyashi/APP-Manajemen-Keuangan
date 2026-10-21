@@ -138,7 +138,7 @@ class ReportPage extends StatelessWidget {
 
                 return SafeArea(
                   child: ListView(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(12),
                     children: [
                       // Kartu 1: Prediksi Survival Mode.
                       Card(

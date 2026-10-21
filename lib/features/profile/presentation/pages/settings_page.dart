@@ -51,7 +51,7 @@ class SettingsPage extends StatelessWidget {
           ),
           body: SafeArea(
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               children: [
                 Text(
                   'Tampilan',
