@@ -1,12 +1,15 @@
 import 'dart:typed_data';
 
 class AuthUser {
+  static const int defaultMonthlyBudget = 1500000;
+  static const Object _unset = Object();
+
   final String uid;
   final String? email;
   final String? displayName;
   final bool emailVerified;
   final Uint8List? profilePhotoBytes;
-  final String? phoneNumber;
+  final int monthlyBudget;
 
   const AuthUser({
     required this.uid,
@@ -14,15 +17,20 @@ class AuthUser {
     this.email,
     this.displayName,
     this.profilePhotoBytes,
-    this.phoneNumber,
+    this.monthlyBudget = defaultMonthlyBudget,
   });
 
-  AuthUser copyWith({Uint8List? profilePhotoBytes}) => AuthUser(
+  AuthUser copyWith({
+    Object? profilePhotoBytes = _unset,
+    int? monthlyBudget,
+  }) => AuthUser(
     uid: uid,
     email: email,
     displayName: displayName,
     emailVerified: emailVerified,
-    profilePhotoBytes: profilePhotoBytes,
-    phoneNumber: phoneNumber,
+    profilePhotoBytes: identical(profilePhotoBytes, _unset)
+        ? this.profilePhotoBytes
+        : profilePhotoBytes as Uint8List?,
+    monthlyBudget: monthlyBudget ?? this.monthlyBudget,
   );
 }

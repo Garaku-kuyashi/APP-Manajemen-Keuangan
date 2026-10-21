@@ -16,6 +16,13 @@ import '../../domain/usecases/transaction_balance_rules.dart';
 import '../cubit/transaction_cubit.dart';
 import '../cubit/transaction_state.dart';
 
+class _AiPromptSubmission {
+  const _AiPromptSubmission({required this.prompt, required this.result});
+
+  final String prompt;
+  final Map<String, dynamic>? result;
+}
+
 class TransactionFormPage extends StatefulWidget {
   final TransactionEntity? initialTransaction;
 
@@ -71,140 +78,59 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
     super.dispose();
   }
 
-  void _showAiPromptDialog() {
-    final promptCtrl = TextEditingController();
-    bool isLoading = false;
-
-    showDialog(
+  Future<void> _showAiPromptDialog() async {
+    final submission = await showDialog<_AiPromptSubmission>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (dialogContext, setDialogState) {
-          final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
-          final dialogBackground = isDark
-              ? AppColors.surface
-              : AppColors.lightBackgroundCard;
-          final primaryText = isDark
-              ? AppColors.textPrimary
-              : AppColors.primaryText;
-          final secondaryText = isDark
-              ? AppColors.textSecondary
-              : AppColors.secondaryText;
-          final inputBackground = isDark
-              ? AppColors.surface
-              : AppColors.lightBackgroundCard;
-          final borderColor = isDark
-              ? AppColors.darkBorder
-              : AppColors.lightBorder;
+      barrierDismissible: false,
+      builder: (_) => _AiPromptDialog(
+        onProcess: (textPrompt) async {
+          // Read wallet data using this page's context before the async call.
+          final walletState = context.read<WalletCubit>().state;
+          final walletNames = walletState is WalletSuccess
+              ? walletState.wallets.map((wallet) => wallet.name).toList()
+              : const <String>[];
 
-          return AlertDialog(
-            backgroundColor: dialogBackground,
-            title: Row(
-              children: [
-                const Icon(AppIcons.aiActive, color: AppColors.accentBlue),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Gemini AI Express Input',
-                    style: TextStyle(color: primaryText),
-                  ),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: promptCtrl,
-                  enabled: !isLoading,
-                  style: TextStyle(color: primaryText),
-                  decoration: InputDecoration(
-                    hintText: 'Bebas, misal: kopi 18rb pakai gopay / gajian 2jt masuk bca',
-                    hintStyle: TextStyle(color: secondaryText),
-                    filled: true,
-                    fillColor: inputBackground,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: BorderSide(color: borderColor),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(20),
-                      borderSide: const BorderSide(
-                        color: AppColors.accentBlue,
-                        width: 1.2,
-                      ),
-                    ),
-                  ),
-                ),
-                if (isLoading) ...[
-                  const SizedBox(height: 16),
-                  const LinearProgressIndicator(color: AppColors.accentBlue),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Gemini sedang menganalisis & menyimpan...',
-                    style: TextStyle(fontSize: 12, color: secondaryText),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: isLoading ? null : () => Navigator.pop(ctx),
-                child: const Text('Batal'),
-              ),
-              FilledButton.icon(
-                icon: const Icon(AppIcons.aiActive),
-                label: const Text('Proses & Simpan'),
-                onPressed: isLoading
-                    ? null
-                    : () async {
-                        final textPrompt = promptCtrl.text.trim();
-                        if (textPrompt.isEmpty) return;
-                        final navigator = Navigator.of(ctx);
-                        final messenger = ScaffoldMessenger.of(this.context);
-                        setDialogState(() => isLoading = true);
-
-                        final walletState = context.read<WalletCubit>().state;
-                        final names = walletState is WalletSuccess
-                            ? walletState.wallets.map((w) => w.name).toList()
-                            : const <String>[];
-
-                        final result =
-                            await GeminiAiService.parseTransactionPrompt(
-                              textPrompt,
-                              walletNames: names,
-                            );
-
-                        if (!mounted) return;
-                        setDialogState(() => isLoading = false);
-                        navigator.pop();
-
-                        if (result == null) {
-                          messenger.showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Aku belum nemu nominalnya. Coba tulis harganya ya, misal "kopi 18rb pakai gopay".',
-                              ),
-                              backgroundColor: AppColors.negative,
-                            ),
-                          );
-                          return;
-                        }
-                        await _saveAiResult(result, textPrompt);
-                      },
-              ),
-            ],
+          return GeminiAiService.parseTransactionPrompt(
+            textPrompt,
+            walletNames: walletNames,
           );
         },
       ),
-    ).whenComplete(promptCtrl.dispose);
+    );
+
+    // Do not save the transaction until the dialog route has finished closing.
+    if (!mounted || submission == null) return;
+
+    final parsedResult = submission.result;
+    if (parsedResult == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Aku belum menemukan nominalnya. Coba tulis harganya, misalnya "kopi 18rb pakai gopay".',
+          ),
+          backgroundColor: AppColors.negative,
+        ),
+      );
+      return;
+    }
+
+    final saved = await _saveAiResult(parsedResult, submission.prompt);
+    if (!mounted || !saved) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Transaksi berhasil dicatat melalui Gemini AI.'),
+        backgroundColor: AppColors.positive,
+      ),
+    );
+    context.pop();
   }
 
   /// Saves the parsed transaction using one of the user's existing wallets.
-  Future<void> _saveAiResult(Map<String, dynamic> result, String prompt) async {
+  Future<bool> _saveAiResult(
+    Map<String, dynamic> result,
+    String prompt,
+  ) async {
     final walletCubit = context.read<WalletCubit>();
     final txCubit = context.read<TransactionCubit>();
     final messenger = ScaffoldMessenger.of(context);
@@ -217,7 +143,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           backgroundColor: AppColors.accentBlue,
         ),
       );
-      return;
+      return false;
     }
     final wallets = walletState.wallets;
 
@@ -243,7 +169,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           backgroundColor: AppColors.negative,
         ),
       );
-      return;
+      return false;
     }
 
     final saved = await txCubit.add(
@@ -258,66 +184,114 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         walletName: wallet.name,
       ),
     );
-    if (!saved) return;
+    if (!saved) {
+      final transactionState = txCubit.state;
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            transactionState is DataError
+                ? 'Transaksi gagal disimpan: ${transactionState.message}'
+                : 'Transaksi gagal disimpan. Coba lagi.',
+          ),
+          backgroundColor: AppColors.negative,
+        ),
+      );
+      return false;
+    }
+
     await walletCubit.loadWallets();
+    return true;
   }
 
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
-    if (_formKey.currentState!.validate()) {
-      if (_selectedWallet == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pilih sumber dompet terlebih dahulu!'),
-            backgroundColor: AppColors.accentBlue,
-          ),
-        );
-        return;
-      }
+    if (!_formKey.currentState!.validate()) return;
 
-      final amount = CurrencyFormatter.parseRupiahAmount(_amountCtrl.text)!;
-      final existing = widget.initialTransaction;
-      final availableBalance = TransactionBalanceRules.availableBalance(
-        currentBalance: _selectedWallet!.balance,
-        walletId: _selectedWallet!.id,
-        existingTransaction: existing,
+    if (_selectedWallet == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Pilih sumber dompet terlebih dahulu!'),
+          backgroundColor: AppColors.accentBlue,
+        ),
       );
-      final balanceError = TransactionBalanceRules.validateAmount(
-        amount: amount,
-        type: _selectedType,
-        availableBalance: availableBalance,
+      return;
+    }
+
+    final amount = CurrencyFormatter.parseRupiahAmount(_amountCtrl.text);
+    if (amount == null) return;
+
+    final existing = widget.initialTransaction;
+    final wallet = _selectedWallet!;
+    final availableBalance = TransactionBalanceRules.availableBalance(
+      currentBalance: wallet.balance,
+      walletId: wallet.id,
+      existingTransaction: existing,
+    );
+    final balanceError = TransactionBalanceRules.validateAmount(
+      amount: amount,
+      type: _selectedType,
+      availableBalance: availableBalance,
+    );
+    if (balanceError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(balanceError),
+          backgroundColor: AppColors.negative,
+        ),
       );
-      if (balanceError != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      return;
+    }
+
+    final txData = TransactionEntity(
+      id: _isEditMode
+          ? widget.initialTransaction!.id
+          : DateTime.now().microsecondsSinceEpoch.toString(),
+      title: _titleCtrl.text.trim(),
+      amount: amount,
+      date: _isEditMode ? widget.initialTransaction!.date : DateTime.now(),
+      category: _selectedCategory,
+      type: _selectedType,
+      walletId: wallet.id,
+      walletName: wallet.name,
+    );
+
+    final walletCubit = context.read<WalletCubit>();
+    final txCubit = context.read<TransactionCubit>();
+    final messenger = ScaffoldMessenger.of(context);
+    final saved = _isEditMode
+        ? await txCubit.update(txData)
+        : await txCubit.add(txData);
+
+    if (!mounted) return;
+
+    if (!saved) {
+      final transactionState = txCubit.state;
+      if (transactionState is DataError) {
+        messenger.showSnackBar(
           SnackBar(
-            content: Text(balanceError),
+            content: Text(transactionState.message),
             backgroundColor: AppColors.negative,
           ),
         );
-        return;
       }
-
-      final txData = TransactionEntity(
-        id: _isEditMode
-            ? widget.initialTransaction!.id
-            : DateTime.now().microsecondsSinceEpoch.toString(),
-        title: _titleCtrl.text.trim(),
-        amount: amount,
-        date: _isEditMode ? widget.initialTransaction!.date : DateTime.now(),
-        category: _selectedCategory,
-        type: _selectedType,
-        walletId: _selectedWallet!.id,
-        walletName: _selectedWallet!.name,
-      );
-
-      final walletCubit = context.read<WalletCubit>();
-      final txCubit = context.read<TransactionCubit>();
-      final saved = _isEditMode
-          ? await txCubit.update(txData)
-          : await txCubit.add(txData);
-      if (saved) await walletCubit.loadWallets();
+      return;
     }
+
+    await walletCubit.loadWallets();
+    if (!mounted) return;
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          _isEditMode
+              ? 'Transaksi berhasil diperbarui!'
+              : 'Transaksi berhasil dicatat!',
+        ),
+        backgroundColor: AppColors.positive,
+      ),
+    );
+    context.pop();
   }
 
   @override
@@ -393,30 +367,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
           child: Container(height: 1, color: borderColor),
         ),
       ),
-      body: BlocListener<TransactionCubit, TransactionState>(
-        listener: (context, state) {
-          if (state is DataSuccess) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(
-                  _isEditMode
-                      ? 'Transaksi berhasil diperbarui!'
-                      : 'Transaksi berhasil dicatat!',
-                ),
-                backgroundColor: AppColors.positive,
-              ),
-            );
-            context.pop();
-          } else if (state is DataError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.negative,
-              ),
-            );
-          }
-        },
-        child: SafeArea(
+      body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
             child: Form(
@@ -626,8 +577,158 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
               ),
             ),
           ),
-        ),
       ),
     );
   }
 }
+
+/// Dialog owns its controller so it is disposed only when the dialog widget
+/// itself is removed from the tree, not when showDialog's Future completes.
+class _AiPromptDialog extends StatefulWidget {
+  const _AiPromptDialog({required this.onProcess});
+
+  final Future<Map<String, dynamic>?> Function(String prompt) onProcess;
+
+  @override
+  State<_AiPromptDialog> createState() => _AiPromptDialogState();
+}
+
+class _AiPromptDialogState extends State<_AiPromptDialog> {
+  late final TextEditingController _promptController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _promptController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _promptController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _processPrompt() async {
+    final prompt = _promptController.text.trim();
+    if (prompt.isEmpty || _isLoading) return;
+
+    FocusScope.of(context).unfocus();
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await widget.onProcess(prompt);
+      if (!mounted) return;
+
+      Navigator.of(context).pop(
+        _AiPromptSubmission(prompt: prompt, result: result),
+      );
+    } catch (error, stackTrace) {
+      debugPrint('Gemini gagal memproses input transaksi: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Gemini gagal memproses input: $error'),
+          backgroundColor: AppColors.negative,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final dialogBackground = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final primaryText = isDark
+        ? AppColors.textPrimary
+        : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+    final inputBackground = isDark
+        ? AppColors.surface
+        : AppColors.lightBackgroundCard;
+    final borderColor = isDark
+        ? AppColors.darkBorder
+        : AppColors.lightBorder;
+
+    return AlertDialog(
+      backgroundColor: dialogBackground,
+      title: Row(
+        children: [
+          const Icon(AppIcons.aiActive, color: AppColors.accentBlue),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Gemini AI Express Input',
+              style: TextStyle(color: primaryText),
+            ),
+          ),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _promptController,
+              enabled: !_isLoading,
+              style: TextStyle(color: primaryText),
+              decoration: InputDecoration(
+                hintText:
+                    'Bebas, misal: kopi 18rb pakai gopay / gajian 2jt masuk bca',
+                hintStyle: TextStyle(color: secondaryText),
+                filled: true,
+                fillColor: inputBackground,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: BorderSide(color: borderColor),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(
+                    color: AppColors.accentBlue,
+                    width: 1.2,
+                  ),
+                ),
+              ),
+              onSubmitted: (_) {
+                if (!_isLoading) _processPrompt();
+              },
+            ),
+            if (_isLoading) ...[
+              const SizedBox(height: 16),
+              const LinearProgressIndicator(color: AppColors.accentBlue),
+              const SizedBox(height: 8),
+              Text(
+                'Gemini sedang menganalisis...',
+                style: TextStyle(fontSize: 12, color: secondaryText),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : () => Navigator.of(context).pop(),
+          child: const Text('Batal'),
+        ),
+        FilledButton.icon(
+          icon: const Icon(AppIcons.aiActive),
+          label: const Text('Proses & Simpan'),
+          onPressed: _isLoading ? null : _processPrompt,
+        ),
+      ],
+    );
+  }
+}
+

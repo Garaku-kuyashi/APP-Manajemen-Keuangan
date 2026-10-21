@@ -9,6 +9,7 @@ import 'package:mymoney/core/utils/dashboard_calculator.dart';
 import 'package:mymoney/core/utils/dashboard_date_formatter.dart';
 import 'package:mymoney/features/chat/presentation/cubit/conversation_cubit.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
+import 'package:mymoney/features/login/domain/entities/auth_user.dart';
 
 import '../theme/dashboard_theme.dart';
 import '../widgets/dashboard_shared_widgets.dart';
@@ -48,7 +49,6 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   int _navIndex = _Tab.home;
   bool _hideBalance = false;
   String _selectedWalletId = '';
-  final int _monthlyBudgetLimit = 1500000;
 
   @override
   void initState() {
@@ -362,10 +362,17 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
   // =========================================================================
   // KARTU ANGGARAN BULANAN
   // =========================================================================
-  Widget _buildBudgetCard(int totalExpense, DashboardColors colors) {
-    final ratio = (totalExpense / _monthlyBudgetLimit).clamp(0.0, 1.0);
-    final percent = (totalExpense / _monthlyBudgetLimit * 100).round();
-    final isOverBudget = totalExpense > _monthlyBudgetLimit;
+  Widget _buildBudgetCard(
+    int totalExpense,
+    int monthlyBudgetLimit,
+    DashboardColors colors,
+  ) {
+    final safeBudgetLimit = monthlyBudgetLimit > 0
+        ? monthlyBudgetLimit
+        : AuthUser.defaultMonthlyBudget;
+    final ratio = (totalExpense / safeBudgetLimit).clamp(0.0, 1.0);
+    final percent = (totalExpense / safeBudgetLimit * 100).round();
+    final isOverBudget = totalExpense > safeBudgetLimit;
     final barColor = isOverBudget ? AppColors.negative : AppColors.accentBlue;
 
     return Container(
@@ -418,7 +425,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                       ),
                       TextSpan(
                         text:
-                            ' / ${CurrencyFormatter.format(_monthlyBudgetLimit)}',
+                            ' / ${CurrencyFormatter.format(safeBudgetLimit)}',
                       ),
                     ],
                   ),
@@ -580,6 +587,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
     BuildContext context,
     DashboardColors colors,
     String userName,
+    int monthlyBudgetLimit,
   ) {
     return Theme(
       data: dashboardThemeOf(context, colors),
@@ -656,7 +664,7 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
                       colors: colors,
                     ),
                   ),
-                  SliverToBoxAdapter(child: _buildBudgetCard(expense, colors)),
+                  SliverToBoxAdapter(child: _buildBudgetCard(expense, monthlyBudgetLimit, colors)),
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 0, 16, 12),
@@ -791,7 +799,12 @@ class _TransactionDashboardState extends State<TransactionDashboard> {
       _Tab.report => const ReportPage(),
       _Tab.profile => const ProfilePage(),
       _Tab.wallet => const WalletPage(),
-      _ => _buildDashboard(context, colors, userName),
+      _ => _buildDashboard(
+        context,
+        colors,
+        userName,
+        user?.monthlyBudget ?? AuthUser.defaultMonthlyBudget,
+      ),
     };
 
     // Urutan sesuai index _Tab (dipakai oleh NavigationRail di layar lebar)

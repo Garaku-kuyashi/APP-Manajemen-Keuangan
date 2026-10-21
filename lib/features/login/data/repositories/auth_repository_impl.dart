@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase;
 import 'package:flutter/foundation.dart';
 
+import '../../../../core/services/monthly_budget_service.dart';
 import '../../../../core/utils/profile_photo_compressor.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/repositories/auth_repository.dart';
@@ -22,7 +23,6 @@ class AuthRepositoryImpl implements AuthRepository {
       email: user.email,
       displayName: user.displayName,
       emailVerified: user.emailVerified,
-      phoneNumber: user.phoneNumber,
     );
   }
 
@@ -52,10 +52,19 @@ class AuthRepositoryImpl implements AuthRepository {
 
       await user.updateDisplayName(name.trim());
       await user.reload();
+
+      await MonthlyBudgetService(firestore: _firestore).ensureBudget(user.uid);
+
       await _firebaseAuth.currentUser?.sendEmailVerification();
       return null;
     } on firebase.FirebaseAuthException catch (error) {
       return _errorMessage(error);
+    } on FirebaseException catch (error) {
+      debugPrint('Gagal menyimpan anggaran awal ke Firestore: ${error.code}');
+      return 'Akun berhasil dibuat, tetapi anggaran awal belum tersimpan. Silakan masuk kembali untuk mencoba lagi.';
+    } catch (error) {
+      debugPrint('Gagal menyelesaikan registrasi: $error');
+      return 'Registrasi gagal diselesaikan. Silakan coba lagi.';
     }
   }
 
@@ -187,20 +196,13 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<String?> updateDisplayName(String name) async {
     try {
       final trimmedName = name.trim();
-
-      if (trimmedName.isEmpty) {
-        return 'Nama tidak boleh kosong.';
-      }
+      if (trimmedName.isEmpty) return 'Nama tidak boleh kosong.';
 
       final user = _firebaseAuth.currentUser;
-
-      if (user == null) {
-        return 'Sesi berakhir. Silakan masuk kembali.';
-      }
+      if (user == null) return 'Sesi berakhir. Silakan masuk kembali.';
 
       await user.updateDisplayName(trimmedName);
       await user.reload();
-
       return null;
     } on firebase.FirebaseAuthException catch (error) {
       return _errorMessage(error);

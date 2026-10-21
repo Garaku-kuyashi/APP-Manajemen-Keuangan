@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mymoney/features/chat/presentation/cubit/conversation_cubit.dart';
@@ -34,10 +36,28 @@ class _ChatPageState extends State<ChatPage> {
   bool _isCreatingTopic = false;
   bool _isSending = false;
 
+  // Simpan stream agar tidak membuat subscription baru setiap build.
+  ChatRepository? _repository;
+  Stream<List<ChatTopic>>? _topicsStream;
+  final Map<String, Stream<List<ChatMessage>>> _messageStreams = {};
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final repository = context.read<ChatRepository>();
+
+    if (!identical(_repository, repository)) {
+      _repository = repository;
+      _topicsStream = repository.watchTopics();
+      _messageStreams.clear();
+    }
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _messageStreams.clear();
     super.dispose();
   }
 
@@ -52,7 +72,7 @@ class _ChatPageState extends State<ChatPage> {
     final text = _messageController.text.trim();
     if (text.isEmpty || _isSending) return;
 
-    final repository = context.read<ChatRepository>();
+    final repository = _repository ?? context.read<ChatRepository>();
     final walletCubit = context.read<WalletCubit>();
     final transactionCubit = context.read<TransactionCubit>();
     setState(() => _isSending = true);
@@ -169,7 +189,8 @@ class _ChatPageState extends State<ChatPage> {
 
   Future<void> _deleteTopic(ChatTopic topic) async {
     try {
-      await context.read<ChatRepository>().deleteTopic(topic.id);
+      final repository = _repository ?? context.read<ChatRepository>();
+      await repository.deleteTopic(topic.id);
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -179,7 +200,7 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    final repository = context.read<ChatRepository>();
+    final repository = _repository ?? context.read<ChatRepository>();
     final activeTopicId = _activeTopicId;
     final isThread = activeTopicId != null || _isCreatingTopic;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -274,7 +295,7 @@ class _ChatPageState extends State<ChatPage> {
     final borderColor = isDark ? AppColors.darkBorder : AppColors.lightBorder;
 
     return StreamBuilder<List<ChatTopic>>(
-      stream: repository.watchTopics(),
+      stream: _topicsStream ??= repository.watchTopics(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(
@@ -409,7 +430,10 @@ class _ChatPageState extends State<ChatPage> {
                   ],
                 )
               : StreamBuilder<List<ChatMessage>>(
-                  stream: repository.watchMessages(topicId),
+                  stream: _messageStreams.putIfAbsent(
+                    topicId,
+                    () => repository.watchMessages(topicId),
+                  ),
                   builder: (context, snapshot) {
                     if (snapshot.hasError) {
                       return Center(
@@ -426,11 +450,11 @@ class _ChatPageState extends State<ChatPage> {
                     }
                     final messages = snapshot.data ?? const <ChatMessage>[];
                     WidgetsBinding.instance.addPostFrameCallback((_) {
-                      if (_scrollController.hasClients) {
-                        _scrollController.jumpTo(
-                          _scrollController.position.maxScrollExtent,
-                        );
-                      }
+                      // Callback frame dapat berjalan setelah halaman ditutup.
+                      if (!mounted || !_scrollController.hasClients) return;
+                      _scrollController.jumpTo(
+                        _scrollController.position.maxScrollExtent,
+                      );
                     });
                     return ListView.builder(
                       controller: _scrollController,

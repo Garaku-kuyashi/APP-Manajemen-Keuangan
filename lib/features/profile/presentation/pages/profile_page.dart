@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:mymoney/core/utils/currency_formatter.dart';
 import 'package:mymoney/core/utils/text_input_formatter.dart';
 import 'package:mymoney/features/login/presentation/cubit/auth_cubit.dart';
+import 'package:mymoney/features/login/domain/entities/auth_user.dart';
 
 import '../../../../core/di/theme/app_colors.dart';
 import '../../../../core/di/theme/app_icons.dart';
@@ -16,6 +17,12 @@ import '../../../wallet/presentation/cubit/wallet_cubit.dart';
 import '../../../wallet/presentation/cubit/wallet_state.dart';
 import '../../../wallet/presentation/pages/wallet_page.dart';
 
+int? _parseRupiahAmount(String value) {
+  final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
+  if (digits.isEmpty) return null;
+  return int.tryParse(digits);
+}
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -24,7 +31,6 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  int _userBudget = 1500000;
   bool _loggingOut = false;
 
   Future<void> _logout() async {
@@ -67,130 +73,34 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  void _showSetBudgetDialog() {
-    final budgetCtrl = TextEditingController(
-      text: CurrencyFormatter.formatWithoutSymbol(_userBudget),
+  Future<void> _showSetBudgetDialog() async {
+    final authCubit = context.read<AuthCubit>();
+    final currentBudget =
+        authCubit.state?.monthlyBudget ?? AuthUser.defaultMonthlyBudget;
+
+    // Controller dimiliki oleh State dialog, bukan oleh halaman ini.
+    // Dengan begitu controller tidak di-dispose saat Future showDialog selesai,
+    // sementara animasi penutupan dialog dan TextField masih terpasang.
+    final savedBudget = await showDialog<int>(
+      context: context,
+      builder: (_) => _SetMonthlyBudgetDialog(
+        initialBudget: currentBudget,
+        onSave: authCubit.updateMonthlyBudget,
+      ),
     );
 
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final isDark = Theme.of(ctx).brightness == Brightness.dark;
+    if (!mounted || savedBudget == null) return;
 
-        return AlertDialog(
-          backgroundColor: isDark
-              ? AppColors.surface
-              : AppColors.lightBackgroundCard,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(
+            'Batas anggaran berhasil disimpan: ${CurrencyFormatter.format(savedBudget)}',
           ),
-
-          title: Text(
-            'Atur Batas Anggaran Bulanan',
-            style: TextStyle(
-              color: isDark ? AppColors.textPrimary : AppColors.primaryText,
-            ),
-          ),
-
-          content: ConstrainedBox(
-            constraints: BoxConstraints(minWidth: 400, maxWidth: 440),
-            child: SingleChildScrollView(
-              child: TextField(
-                maxLength: 18,
-                inputFormatters: [RupiahInputFormatter()],
-                controller: budgetCtrl,
-                keyboardType: TextInputType.number,
-                style: TextStyle(
-                  color: isDark ? AppColors.textPrimary : AppColors.primaryText,
-                ),
-                decoration: InputDecoration(
-                  labelText: 'Batas Budget (Rp)',
-                  hintText: 'Misal: 2000000',
-                  filled: true,
-                  fillColor: isDark
-                      ? AppColors.surface
-                      : AppColors.lightBackgroundCard,
-                  labelStyle: TextStyle(
-                    color: isDark
-                        ? AppColors.textSecondary
-                        : AppColors.secondaryText,
-                  ),
-                  hintStyle: TextStyle(
-                    color: isDark
-                        ? AppColors.textSecondary
-                        : AppColors.secondaryText,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: isDark
-                          ? AppColors.darkBorder
-                          : AppColors.lightBorder,
-                    ),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide(
-                      color: isDark
-                          ? AppColors.darkBorder
-                          : AppColors.lightBorder,
-                    ),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: const BorderSide(color: AppColors.accentBlue),
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text(
-                'Batal',
-                style: TextStyle(color: AppColors.negative),
-              ),
-            ),
-            FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.accentBlue,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () {
-                final newBudget = CurrencyFormatter.parseRupiahAmount(budgetCtrl.text);
-
-                if (newBudget == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Masukkan nominal anggaran yang valid.'),
-                      backgroundColor: AppColors.negative,
-                    ),
-                  );
-                  return;
-                }
-
-                setState(() => _userBudget = newBudget);
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Batas anggaran berhasil diubah ke ${CurrencyFormatter.format(_userBudget)}',
-                    ),
-                    backgroundColor: AppColors.positive,
-                  ),
-                );
-
-                Navigator.pop(ctx);
-              },
-              child: const Text('Simpan'),
-            ),
-          ],
-        );
-      },
-    ).whenComplete(budgetCtrl.dispose);
+          backgroundColor: AppColors.positive,
+        ),
+      );
   }
 
   void _showExportDialog(BuildContext context) {
@@ -280,6 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
     final userName = user?.displayName?.trim().isNotEmpty == true
         ? user!.displayName!
         : 'Pengguna';
+    final monthlyBudget = user?.monthlyBudget ?? AuthUser.defaultMonthlyBudget;
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final pageBackground = isDark
@@ -543,7 +454,7 @@ class _ProfilePageState extends State<ProfilePage> {
                       style: TextStyle(color: primaryText),
                     ),
                     subtitle: Text(
-                      'Target: ${CurrencyFormatter.format(_userBudget)} / bulan',
+                      'Target: ${CurrencyFormatter.format(monthlyBudget)} / bulan',
                       style: TextStyle(color: secondaryText),
                     ),
                     trailing: Icon(Icons.chevron_right, color: secondaryText),
@@ -572,6 +483,173 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _SetMonthlyBudgetDialog extends StatefulWidget {
+  final int initialBudget;
+  final Future<String?> Function(int budget) onSave;
+
+  const _SetMonthlyBudgetDialog({
+    required this.initialBudget,
+    required this.onSave,
+  });
+
+  @override
+  State<_SetMonthlyBudgetDialog> createState() =>
+      _SetMonthlyBudgetDialogState();
+}
+
+class _SetMonthlyBudgetDialogState extends State<_SetMonthlyBudgetDialog> {
+  late final TextEditingController _budgetController;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _budgetController = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(widget.initialBudget),
+    );
+  }
+
+  @override
+  void dispose() {
+    // Dialog State yang memiliki controller, sehingga disposal mengikuti
+    // lifecycle TextField setelah route dialog benar-benar dilepas.
+    _budgetController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (_saving) return;
+
+    final newBudget = _parseRupiahAmount(_budgetController.text);
+    if (newBudget == null || newBudget <= 0) {
+      setState(() {
+        _error = 'Masukkan nominal anggaran yang valid dan lebih dari Rp0.';
+      });
+      return;
+    }
+
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    try {
+      final error = await widget.onSave(newBudget);
+      if (!mounted) return;
+
+      if (error != null) {
+        setState(() {
+          _saving = false;
+          _error = error;
+        });
+        return;
+      }
+
+      Navigator.of(context).pop(newBudget);
+    } catch (error, stackTrace) {
+      debugPrint('Gagal menyimpan batas anggaran: $error');
+      debugPrintStack(stackTrace: stackTrace);
+      if (!mounted) return;
+
+      setState(() {
+        _saving = false;
+        _error = 'Anggaran gagal disimpan. Silakan coba lagi.';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryText = isDark ? AppColors.textPrimary : AppColors.primaryText;
+    final secondaryText = isDark
+        ? AppColors.textSecondary
+        : AppColors.secondaryText;
+
+    return AlertDialog(
+      backgroundColor: isDark
+          ? AppColors.surface
+          : AppColors.lightBackgroundCard,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        'Atur Batas Anggaran Bulanan',
+        style: TextStyle(color: primaryText),
+      ),
+      content: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 400, maxWidth: 440),
+        child: SingleChildScrollView(
+          child: TextField(
+            maxLength: 18,
+            enabled: !_saving,
+            inputFormatters: [RupiahInputFormatter()],
+            controller: _budgetController,
+            keyboardType: TextInputType.number,
+            style: TextStyle(color: primaryText),
+            decoration: InputDecoration(
+              labelText: 'Batas Budget (Rp)',
+              hintText: 'Misal: 2000000',
+              errorText: _error,
+              filled: true,
+              fillColor: isDark
+                  ? AppColors.surface
+                  : AppColors.lightBackgroundCard,
+              labelStyle: TextStyle(color: secondaryText),
+              hintStyle: TextStyle(color: secondaryText),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: BorderSide(
+                  color: isDark ? AppColors.darkBorder : AppColors.lightBorder,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(20),
+                borderSide: const BorderSide(color: AppColors.accentBlue),
+              ),
+            ),
+            onChanged: (_) {
+              if (_error != null) setState(() => _error = null);
+            },
+          ),
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.of(context).pop(),
+          child: const Text(
+            'Batal',
+            style: TextStyle(color: AppColors.negative),
+          ),
+        ),
+        FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.accentBlue,
+            foregroundColor: Colors.white,
+          ),
+          onPressed: _saving ? null : _save,
+          child: _saving
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Simpan'),
+        ),
+      ],
     );
   }
 }
