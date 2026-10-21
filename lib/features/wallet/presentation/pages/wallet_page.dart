@@ -30,7 +30,9 @@ class _WalletPageState extends State<WalletPage> {
     final isEdit = wallet != null;
     final nameCtrl = TextEditingController(text: wallet?.name ?? '');
     final balanceCtrl = TextEditingController(
-      text: wallet != null ? CurrencyFormatter.formatWithoutSymbol(wallet.balance) : '',
+      text: wallet != null
+          ? CurrencyFormatter.formatWithoutSymbol(wallet.balance)
+          : '',
     );
 
     showDialog(
@@ -67,10 +69,7 @@ class _WalletPageState extends State<WalletPage> {
           ),
 
           content: ConstrainedBox(
-            constraints: BoxConstraints(
-              minWidth: 360,
-              maxWidth: 440,
-            ),
+            constraints: BoxConstraints(minWidth: 360, maxWidth: 440),
             child: SingleChildScrollView(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -100,7 +99,7 @@ class _WalletPageState extends State<WalletPage> {
                   const SizedBox(height: 12),
 
                   TextField(
-                    maxLength: 14,
+                    maxLength: 18,
                     inputFormatters: isEdit ? [] : [RupiahInputFormatter()],
                     controller: balanceCtrl,
                     keyboardType: TextInputType.number,
@@ -157,7 +156,8 @@ class _WalletPageState extends State<WalletPage> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                final balance = int.tryParse(balanceCtrl.text.trim());
+                // Saldo bisa tampil sebagai 1.500.000; hapus pemisah ribuan dahulu.
+                final balance = CurrencyFormatter.parseRupiahAmount(balanceCtrl.text);
 
                 if (nameCtrl.text.trim().isEmpty ||
                     balance == null ||
@@ -168,7 +168,7 @@ class _WalletPageState extends State<WalletPage> {
                           ? AppColors.surface
                           : AppColors.navyBlue,
                       content: const Text(
-                        'Masukkan nama dan saldo awal yang valid.',
+                        'Masukkan nama dan saldo yang valid.',
                         style: TextStyle(color: Colors.white),
                       ),
                     ),

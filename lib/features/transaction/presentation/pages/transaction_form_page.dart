@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mymoney/core/di/theme/app_colors.dart';
+import 'package:mymoney/core/utils/currency_formatter.dart';
 import 'package:mymoney/core/utils/text_input_formatter.dart';
 
 import '../../../../core/services/gemini_ai_service.dart';
@@ -275,7 +276,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
         return;
       }
 
-      final amount = int.parse(_amountCtrl.text.trim());
+      final amount = CurrencyFormatter.parseRupiahAmount(_amountCtrl.text)!;
       final existing = widget.initialTransaction;
       final availableBalance = TransactionBalanceRules.availableBalance(
         currentBalance: _selectedWallet!.balance,
@@ -492,7 +493,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                   const SizedBox(height: 16),
 
                   TextFormField(
-                    maxLength: 14,
+                    maxLength: 18,
                     inputFormatters: [RupiahInputFormatter()],
                     controller: _amountCtrl,
                     style: TextStyle(color: primaryText),
@@ -505,7 +506,7 @@ class _TransactionFormPageState extends State<TransactionFormPage> {
                       if (val == null || val.trim().isEmpty) {
                         return 'Nominal wajib diisi!';
                       }
-                      final amount = int.tryParse(val.trim());
+                      final amount = CurrencyFormatter.parseRupiahAmount(val);
                       if (amount == null) return 'Harus berupa angka valid!';
                       final wallet = _selectedWallet;
                       if (wallet != null) {

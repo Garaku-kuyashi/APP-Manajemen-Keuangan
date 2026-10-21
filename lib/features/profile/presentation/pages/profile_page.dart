@@ -68,7 +68,9 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   void _showSetBudgetDialog() {
-    final budgetCtrl = TextEditingController(text: CurrencyFormatter.formatWithoutSymbol(_userBudget));
+    final budgetCtrl = TextEditingController(
+      text: CurrencyFormatter.formatWithoutSymbol(_userBudget),
+    );
 
     showDialog(
       context: context,
@@ -95,7 +97,7 @@ class _ProfilePageState extends State<ProfilePage> {
             constraints: BoxConstraints(minWidth: 400, maxWidth: 440),
             child: SingleChildScrollView(
               child: TextField(
-                maxLength: 14,
+                maxLength: 18,
                 inputFormatters: [RupiahInputFormatter()],
                 controller: budgetCtrl,
                 keyboardType: TextInputType.number,
@@ -158,20 +160,28 @@ class _ProfilePageState extends State<ProfilePage> {
                 foregroundColor: Colors.white,
               ),
               onPressed: () {
-                final newBudget = int.tryParse(budgetCtrl.text.trim());
+                final newBudget = CurrencyFormatter.parseRupiahAmount(budgetCtrl.text);
 
-                if (newBudget != null) {
-                  setState(() => _userBudget = newBudget);
-
+                if (newBudget == null) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(
-                        'Batas anggaran berhasil diubah ke Rp $_userBudget',
-                      ),
-                      backgroundColor: AppColors.positive,
+                    const SnackBar(
+                      content: Text('Masukkan nominal anggaran yang valid.'),
+                      backgroundColor: AppColors.negative,
                     ),
                   );
+                  return;
                 }
+
+                setState(() => _userBudget = newBudget);
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      'Batas anggaran berhasil diubah ke ${CurrencyFormatter.format(_userBudget)}',
+                    ),
+                    backgroundColor: AppColors.positive,
+                  ),
+                );
 
                 Navigator.pop(ctx);
               },
@@ -180,7 +190,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ],
         );
       },
-    );
+    ).whenComplete(budgetCtrl.dispose);
   }
 
   void _showExportDialog(BuildContext context) {
